@@ -28277,15 +28277,17 @@ const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(9526);
 
 // Get inputs from GitHub Actions workflow
-const GITHUB_TOKEN = core.getInput('github-token');
 const CLI_VERSION = core.getInput('cli-version');
 const EXECUTABLE_PATH = core.getInput('executable-path');
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
 
+// Use the GitHub Actions token for authentication
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+
 // Configure authenticated GraphQL client
 const graphqlWithAuth = graphql.defaults({
   headers: {
-    authorization: `token ${GITHUB_TOKEN}`,
+    authorization: `bearer ${GITHUB_TOKEN}`,
   },
 });
 
@@ -28398,7 +28400,7 @@ async function installCliViaPip() {
   try {
     const normalizedVersion = normalizeVersionForPip(CLI_VERSION);
     const cliPackage = CLI_VERSION && CLI_VERSION !== 'none' ? `cloudsmith-cli==${normalizedVersion}` : 'cloudsmith-cli';
-    await exec.exec('pip', ['install', cliPackage]);
+    await exec.exec('pip', ['install', cliPackage], '--index-url=https://dl.cloudsmith.io/public/cloudsmith/cli/python/simple/');
   } catch (error) {
     core.setFailed(`Failed to install the CLI via pip: ${error.message}`);
   }
@@ -28457,7 +28459,7 @@ async function authenticate(orgName, serviceAccountSlug) {
     // Export the API token as an environment variable
     core.exportVariable("CLOUDSMITH_API_KEY", token);
     core.info(
-      "Authenticated successfully with OIDC and saved API key to environment variable."
+      "Authenticated successfully with OIDC and saved JWT (token) to `CLOUDSMITH_API_KEY` environment variable."
     );
 
     // Validate the token to ensure it is correct
