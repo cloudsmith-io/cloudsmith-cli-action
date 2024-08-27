@@ -4,27 +4,26 @@ author: BartoszBlizniak
 inputs:
   cli-version:
     description: "A specific version of the Cloudsmith CLI is installed/used."
-    default: none
+    default: ''
     required: false
   api-key:
     description: 'API Key for Cloudsmith'
-    default: none
+    default: ''
     required: false
   oidc-namespace:
     description: 'Cloudsmith organisation/namespace for OIDC'
-    default: none
+    default: ''
     required: false
   oidc-service-slug:
     description: 'Cloudsmith service account slug for OIDC'
-    default: none
+    default: ''
     required: false
   pip-install:
     description: 'Install the Cloudsmith CLI via pip'
-    default: none
+    default: 'false'
     required: false
   executable-path:
-    description: 'Path to the Cloudsmith CLI executable'
-    default: 'GITHUB_WORKSPACE/bin/'
+    description: 'Path where the Cloudsmith CLI is downloaded'
     required: false
 outputs:
     oidc-token:

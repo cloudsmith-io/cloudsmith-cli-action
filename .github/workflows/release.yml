@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
   release:
     types: [published]
+  push:
+    tags:
+      - '*'
 
 jobs:
   build-and-commit:
@@ -35,3 +38,14 @@ jobs:
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Create Release"
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false

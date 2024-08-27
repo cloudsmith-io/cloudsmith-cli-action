@@ -33260,16 +33260,41 @@ const core = __nccwpck_require__(2186);
 const exec = __nccwpck_require__(1514);
 const fs = __nccwpck_require__(7147);
 const path = __nccwpck_require__(1017);
-const fetch = __nccwpck_require__(1793);
+const fetch = (__nccwpck_require__(1793)/* ["default"] */ .ZP);
+const os = __nccwpck_require__(2037);
 
 // Get inputs from GitHub Actions workflow
 const CLI_VERSION = core.getInput('cli-version');
-const EXECUTABLE_PATH = core.getInput('executable-path') || process.env.GITHUB_WORKSPACE;
+const EXECUTABLE_PATH = core.getInput('executable-path') || path.join(process.env.GITHUB_WORKSPACE, 'bin', 'cloudsmith');
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
 
-// Normalize version for pip installation and direct download
-function normalizeVersion(version) {
-  return version.startsWith('v') ? version.slice(1) : version;
+// Ensure the executable directory exists
+fs.mkdirSync(path.dirname(EXECUTABLE_PATH), { recursive: true });
+
+// Helper function to download a file and set permissions
+async function downloadFile(url, dest) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${url}: ${res.statusText}`);
+  }
+  const fileStream = fs.createWriteStream(dest);
+  await new Promise((resolve, reject) => {
+    res.body.pipe(fileStream);
+    res.body.on('error', reject);
+    fileStream.on('finish', resolve);
+  });
+  fs.chmodSync(dest, '755');
+}
+
+// Helper function to add path and create Windows batch script if needed
+function addPathAndCreateBatchScript() {
+  core.addPath(path.dirname(EXECUTABLE_PATH));
+  if (os.platform() === 'win32') {
+    const batFilePath = path.join(path.dirname(EXECUTABLE_PATH), 'cloudsmith.bat');
+    const content = `@echo off\npython ${EXECUTABLE_PATH} %*`;
+    fs.writeFileSync(batFilePath, content);
+    core.addPath(path.dirname(batFilePath));
+  }
 }
 
 // Download the latest release of the CLI
@@ -33277,6 +33302,7 @@ async function downloadLatestRelease() {
   try {
     const downloadUrl = 'https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/latest/cloudsmith.pyz';
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
+    addPathAndCreateBatchScript();
   } catch (error) {
     core.setFailed(`Failed to download the latest release: ${error.message}`);
   }
@@ -33285,37 +33311,21 @@ async function downloadLatestRelease() {
 // Download a specific release of the CLI by version
 async function downloadSpecificRelease(version) {
   try {
-    const normalizedVersion = normalizeVersion(version);
-    const downloadUrl = `https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/${normalizedVersion}/cloudsmith.pyz`;
+    const downloadUrl = `https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/${version}/cloudsmith.pyz`;
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
+    addPathAndCreateBatchScript();
   } catch (error) {
-    core.setFailed(`Failed to download the specific release (${version}): ${error.message}`);
+    core.setFailed(`Failed to download the specific release: ${error.message}`);
   }
 }
 
-// Download a file from a URL and save it to the specified path
-async function downloadFile(url, outputPath) {
+// Install the CLI via pip
+async function installCliViaPip() {
   try {
-    const fileName = path.basename(url);
-    const filePath = path.join(outputPath, fileName);
-
-    // Ensure the directory exists
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-
-    const writer = fs.createWriteStream(filePath);
-
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
-    }
-    response.body.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-    });
+    const cliPackage = CLI_VERSION && CLI_VERSION !== 'none' ? `cloudsmith-cli==${CLI_VERSION}` : 'cloudsmith-cli';
+    await exec.exec('pip', ['install', cliPackage], '--index-url=https://dl.cloudsmith.io/public/cloudsmith/cli/python/simple/');
   } catch (error) {
-    core.setFailed(`Failed to download the file from ${url}: ${error.message}`);
+    core.setFailed(`Failed to install the CLI via pip: ${error.message}`);
   }
 }
 
@@ -33331,17 +33341,6 @@ async function installCli() {
     }
   } catch (error) {
     core.setFailed(`Failed to install the CLI: ${error.message}`);
-  }
-}
-
-// Install the CLI via pip
-async function installCliViaPip() {
-  try {
-    const normalizedVersion = normalizeVersion(CLI_VERSION);
-    const cliPackage = CLI_VERSION && CLI_VERSION !== 'none' ? `cloudsmith-cli==${normalizedVersion}` : 'cloudsmith-cli';
-    await exec.exec('pip', ['install', cliPackage], '--index-url=https://dl.cloudsmith.io/public/cloudsmith/cli/python/simple/');
-  } catch (error) {
-    core.setFailed(`Failed to install the CLI via pip: ${error.message}`);
   }
 }
 
@@ -40223,15 +40222,10 @@ const File = _File
 
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
-  "t6": () => (/* reexport */ fetch_blob/* default */.Z),
-  "$B": () => (/* reexport */ file/* default */.Z),
-  "xB": () => (/* binding */ blobFrom),
-  "SX": () => (/* binding */ blobFromSync),
-  "e2": () => (/* binding */ fileFrom),
-  "RA": () => (/* binding */ fileFromSync)
+  "$B": () => (/* reexport */ file/* default */.Z)
 });
 
-// UNUSED EXPORTS: default
+// UNUSED EXPORTS: Blob, blobFrom, blobFromSync, default, fileFrom, fileFromSync
 
 ;// CONCATENATED MODULE: external "node:fs"
 const external_node_fs_namespaceObject = require("node:fs");
@@ -40257,7 +40251,7 @@ const { stat } = external_node_fs_namespaceObject.promises
  * @param {string} path filepath on the disk
  * @param {string} [type] mimetype to use
  */
-const blobFromSync = (path, type) => fromBlob((0,external_node_fs_namespaceObject.statSync)(path), path, type)
+const blobFromSync = (path, type) => fromBlob(statSync(path), path, type)
 
 /**
  * @param {string} path filepath on the disk
@@ -40277,10 +40271,10 @@ const fileFrom = (path, type) => stat(path).then(stat => fromFile(stat, path, ty
  * @param {string} path filepath on the disk
  * @param {string} [type] mimetype to use
  */
-const fileFromSync = (path, type) => fromFile((0,external_node_fs_namespaceObject.statSync)(path), path, type)
+const fileFromSync = (path, type) => fromFile(statSync(path), path, type)
 
 // @ts-ignore
-const fromBlob = (stat, path, type = '') => new fetch_blob/* default */.Z([new BlobDataItem({
+const fromBlob = (stat, path, type = '') => new Blob([new BlobDataItem({
   path,
   size: stat.size,
   lastModified: stat.mtimeMs,
@@ -40288,12 +40282,12 @@ const fromBlob = (stat, path, type = '') => new fetch_blob/* default */.Z([new B
 })], { type })
 
 // @ts-ignore
-const fromFile = (stat, path, type = '') => new file/* default */.Z([new BlobDataItem({
+const fromFile = (stat, path, type = '') => new File([new BlobDataItem({
   path,
   size: stat.size,
   lastModified: stat.mtimeMs,
   start: 0
-})], (0,external_node_path_namespaceObject.basename)(path), { type, lastModified: stat.mtimeMs })
+})], basename(path), { type, lastModified: stat.mtimeMs })
 
 /**
  * This is a blob backed up by a file on the disk
@@ -40329,9 +40323,9 @@ class BlobDataItem {
   async * stream () {
     const { mtimeMs } = await stat(this.#path)
     if (mtimeMs > this.lastModified) {
-      throw new node_domexception('The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.', 'NotReadableError')
+      throw new DOMException('The requested file could not be read, typically due to permission problems that have occurred after a reference to a file was acquired.', 'NotReadableError')
     }
-    yield * (0,external_node_fs_namespaceObject.createReadStream)(this.#path, {
+    yield * createReadStream(this.#path, {
       start: this.#start,
       end: this.#start + this.size - 1
     })
@@ -40670,26 +40664,13 @@ return new B(c,{type:"multipart/form-data; boundary="+b})}
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __nccwpck_require__) => {
 
 "use strict";
-// ESM COMPAT FLAG
-__nccwpck_require__.r(__webpack_exports__);
 
 // EXPORTS
 __nccwpck_require__.d(__webpack_exports__, {
-  "AbortError": () => (/* reexport */ AbortError),
-  "Blob": () => (/* reexport */ from/* Blob */.t6),
-  "FetchError": () => (/* reexport */ FetchError),
-  "File": () => (/* reexport */ from/* File */.$B),
-  "FormData": () => (/* reexport */ esm_min/* FormData */.Ct),
-  "Headers": () => (/* reexport */ Headers),
-  "Request": () => (/* reexport */ Request),
-  "Response": () => (/* reexport */ Response),
-  "blobFrom": () => (/* reexport */ from/* blobFrom */.xB),
-  "blobFromSync": () => (/* reexport */ from/* blobFromSync */.SX),
-  "default": () => (/* binding */ fetch),
-  "fileFrom": () => (/* reexport */ from/* fileFrom */.e2),
-  "fileFromSync": () => (/* reexport */ from/* fileFromSync */.RA),
-  "isRedirect": () => (/* reexport */ isRedirect)
+  "ZP": () => (/* binding */ fetch)
 });
+
+// UNUSED EXPORTS: AbortError, Blob, FetchError, File, FormData, Headers, Request, Response, blobFrom, blobFromSync, fileFrom, fileFromSync, isRedirect
 
 ;// CONCATENATED MODULE: external "node:http"
 const external_node_http_namespaceObject = require("node:http");
