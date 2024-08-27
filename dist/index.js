@@ -33264,7 +33264,7 @@ const fetch = __nccwpck_require__(1793);
 
 // Get inputs from GitHub Actions workflow
 const CLI_VERSION = core.getInput('cli-version');
-const EXECUTABLE_PATH = core.getInput('executable-path');
+const EXECUTABLE_PATH = core.getInput('executable-path') || process.env.GITHUB_WORKSPACE;
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
 
 // Normalize version for pip installation and direct download
@@ -33298,9 +33298,16 @@ async function downloadFile(url, outputPath) {
   try {
     const fileName = path.basename(url);
     const filePath = path.join(outputPath, fileName);
+
+    // Ensure the directory exists
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+
     const writer = fs.createWriteStream(filePath);
 
     const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+    }
     response.body.pipe(writer);
 
     return new Promise((resolve, reject) => {
