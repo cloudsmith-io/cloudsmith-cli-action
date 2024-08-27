@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "A GitHub Action to install Cloudsmith CLI and authenticate using OIDC",
   "main": "dist/main.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
-    "package": "ncc build src/main.js -o dist"
+    "prepare": "ncc build src/main.js -o dist"
   },
   "dependencies": {
     "@actions/core": "^1.10.1",
