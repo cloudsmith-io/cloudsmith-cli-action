@@ -13,7 +13,7 @@ const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 // Configure authenticated GraphQL client
 const graphqlWithAuth = graphql.defaults({
   headers: {
-    authorization: `${GITHUB_TOKEN}`,
+    authorization: `bearer ${GITHUB_TOKEN}`,
   },
 });
 
