@@ -1,6 +1,5 @@
 const axios = require("axios");
 const core = require("@actions/core");
-const fetch = require("node-fetch");
 
 /**
  * Authenticates with Cloudsmith using OIDC and validates the token.
@@ -28,7 +27,7 @@ async function authenticate(orgName, serviceAccountSlug) {
     );
 
     // Check if the authentication was successful
-    if (response.status !== 200) {
+    if (response.status !== 200 && response.status !== 201) {
       throw new Error(`Failed to authenticate: ${response.statusText}`);
     }
 

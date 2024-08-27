@@ -1,14 +1,14 @@
 const { graphql } = require('@octokit/graphql');
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const fs = require('fs');
-const path = require('path');
 
 // Get inputs from GitHub Actions workflow
-const GITHUB_TOKEN = core.getInput('github-token');
 const CLI_VERSION = core.getInput('cli-version');
 const EXECUTABLE_PATH = core.getInput('executable-path');
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
+
+// Use the GitHub Actions token for authentication
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 
 // Configure authenticated GraphQL client
 const graphqlWithAuth = graphql.defaults({
