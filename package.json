@@ -4,7 +4,6 @@
   "description": "A GitHub Action to install Cloudsmith CLI and authenticate using OIDC",
   "main": "dist/main.js",
   "scripts": {
-    "prebuild": "ncc build src/main.js -o dist",
     "build": "ncc build src/main.js -o dist"
   },
   "dependencies": {
