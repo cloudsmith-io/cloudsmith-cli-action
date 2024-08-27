@@ -37,7 +37,7 @@ async function authenticate(orgName, serviceAccountSlug) {
     // Export the API token as an environment variable
     core.exportVariable("CLOUDSMITH_API_KEY", token);
     core.info(
-      "Authenticated successfully with OIDC and saved API key to environment variable."
+      "Authenticated successfully with OIDC and saved JWT (token) to `CLOUDSMITH_API_KEY` environment variable."
     );
 
     // Validate the token to ensure it is correct
