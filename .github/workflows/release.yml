@@ -4,14 +4,14 @@ permissions:
   id-token: write
 on:
   workflow_dispatch:
-  release:
-    types: [published]
   push:
     tags:
-      - '*'
+      - 'v*'
+    branches:
+      - '**'
 
 jobs:
-  build-and-commit:
+  build-commit-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,6 +29,11 @@ jobs:
       - name: "Build project"
         run: npm run build
 
+      - name: "Overwrite dist files"
+        run: |
+          rm -rf dist/*
+          npm run build
+
       - name: "Commit built files"
         run: |
           git config --global user.name 'github-actions[bot]'
@@ -38,6 +43,46 @@ jobs:
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "Trigger test_install.yml"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: workflow } = await github.actions.listRepoWorkflows({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const workflow_id = workflow.workflows.find(w => w.name === 'test_install.yml').id;
+            await github.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id,
+              ref: context.ref,
+            });
+
+  test-and-release:
+    needs: build-commit-and-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: "Wait for test_install.yml to complete"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data: runs } = await github.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: workflow_id,
+              branch: context.ref,
+              status: 'completed',
+            });
+            if (runs.workflow_runs.length === 0 || runs.workflow_runs[0].conclusion !== 'success') {
+              throw new Error('test_install.yml did not pass');
+            }
+
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
 
       - name: "Create Release"
         id: create_release
