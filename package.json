@@ -1,0 +1,15 @@
+{
+  "name": "cloudsmith-github-action",
+  "version": "1.0.0",
+  "description": "A GitHub Action to install Cloudsmith CLI and authenticate using OIDC",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "ncc build src/main.js -o dist"
+  },
+  "dependencies": {
+    "@actions/core": "^1.2.6",
+    "@actions/github": "^4.0.0",
+    "@vercel/ncc": "^0.22.3",
+    "axios": "^0.21.1"
+  }
+}
