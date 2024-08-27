@@ -24,6 +24,7 @@ jobs:
         with:
           oidc-namespace: "bart-demo-org"
           oidc-service-slug: "teemo"
+          pip-install: true
       - name: "Verify Cloudsmith CLI Installation"
         run: |
           cloudsmith --version
