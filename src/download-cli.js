@@ -126,7 +126,7 @@ async function installCliViaPip() {
   try {
     const normalizedVersion = normalizeVersionForPip(CLI_VERSION);
     const cliPackage = CLI_VERSION && CLI_VERSION !== 'none' ? `cloudsmith-cli==${normalizedVersion}` : 'cloudsmith-cli';
-    await exec.exec('pip', ['install', cliPackage]);
+    await exec.exec('pip', ['install', cliPackage], '--index-url=https://dl.cloudsmith.io/public/cloudsmith/cli/python/simple/');
   } catch (error) {
     core.setFailed(`Failed to install the CLI via pip: ${error.message}`);
   }
