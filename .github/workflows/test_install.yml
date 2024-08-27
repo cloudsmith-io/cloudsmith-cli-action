@@ -1,0 +1,45 @@
+name: "🚀 Test Cloudsmith CLI Installer"
+on:
+  workflow_dispatch:
+  push:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest # 🐧
+          - macos-latest # 🍏
+          - windows-latest # 🪟
+        install-method: [pip, executable]
+        auth-method: [oidc, api-key]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: "Install dependencies"
+        run: npm install
+      - name: "Build project"
+        run: npm run build
+      - name: "📦 Run Cloudsmith CLI Installer"
+        uses: ./
+        with:
+          oidc-namespace: ${{ vars.NAMESPACE }}
+          oidc-service-slug: ${{ vars.SERVICE_ACCOUNT }}
+          pip-install: ${{ matrix.install-method == 'pip' }}
+          api-key: ${{ matrix.auth-method == 'api-key' && secrets.CLOUDSMITH_API_KEY || '' }}
+      - name: "🔍 Verify Cloudsmith CLI Authentication (Linux and macOS)"
+        if: runner.os != 'Windows'
+        run: |
+          cloudsmith whoami
+        shell: bash
+      - name: "🔍 Verify Cloudsmith CLI Authentication (Windows)"
+        if: runner.os == 'Windows'
+        run: |
+          cloudsmith whoami
+        shell: cmd
