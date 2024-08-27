@@ -1,55 +1,23 @@
-const { graphql } = require('@octokit/graphql');
 const core = require('@actions/core');
 const exec = require('@actions/exec');
+const fs = require('fs');
+const path = require('path');
+const fetch = require('node-fetch');
 
 // Get inputs from GitHub Actions workflow
 const CLI_VERSION = core.getInput('cli-version');
 const EXECUTABLE_PATH = core.getInput('executable-path');
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
 
-// Use the GitHub Actions token for authentication
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-
-// Configure authenticated GraphQL client
-const graphqlWithAuth = graphql.defaults({
-  headers: {
-    authorization: `bearer ${GITHUB_TOKEN}`,
-  },
-});
-
-// Define the Github repository for CLI
-const REPOSITORY = `repository(owner: "cloudsmith-io", name: "cloudsmith-cli")`;
-
-// Normalize version for GraphQL queries
-function normalizeVersionForGraphQL(version) {
-  return version.startsWith('v') ? version : `v${version}`;
-}
-
-// Normalize version for pip installation
-function normalizeVersionForPip(version) {
+// Normalize version for pip installation and direct download
+function normalizeVersion(version) {
   return version.startsWith('v') ? version.slice(1) : version;
 }
 
 // Download the latest release of the CLI
 async function downloadLatestRelease() {
   try {
-    const query = `
-      query {
-        ${REPOSITORY} {
-          latestRelease {
-            releaseAssets(first: 1) {
-              nodes {
-                name
-                downloadUrl
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const response = await graphqlWithAuth(query);
-    const downloadUrl = response.repository.latestRelease.releaseAssets.nodes[0].downloadUrl;
+    const downloadUrl = 'https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/latest/cloudsmith.pyz';
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
   } catch (error) {
     core.setFailed(`Failed to download the latest release: ${error.message}`);
@@ -59,28 +27,8 @@ async function downloadLatestRelease() {
 // Download a specific release of the CLI by version
 async function downloadSpecificRelease(version) {
   try {
-    const normalizedVersion = normalizeVersionForGraphQL(version);
-    const query = `
-      query ($tagName: String!) {
-        ${REPOSITORY} {
-          release(tagName: $tagName) {
-            releaseAssets(first: 1) {
-              nodes {
-                name
-                downloadUrl
-              }
-            }
-          }
-        }
-      }
-    `;
-
-    const variables = {
-      tagName: normalizedVersion,
-    };
-
-    const response = await graphqlWithAuth(query, variables);
-    const downloadUrl = response.repository.release.releaseAssets.nodes[0].downloadUrl;
+    const normalizedVersion = normalizeVersion(version);
+    const downloadUrl = `https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/${normalizedVersion}/cloudsmith.pyz`;
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
   } catch (error) {
     core.setFailed(`Failed to download the specific release (${version}): ${error.message}`);
@@ -124,7 +72,7 @@ async function installCli() {
 // Install the CLI via pip
 async function installCliViaPip() {
   try {
-    const normalizedVersion = normalizeVersionForPip(CLI_VERSION);
+    const normalizedVersion = normalizeVersion(CLI_VERSION);
     const cliPackage = CLI_VERSION && CLI_VERSION !== 'none' ? `cloudsmith-cli==${normalizedVersion}` : 'cloudsmith-cli';
     await exec.exec('pip', ['install', cliPackage], '--index-url=https://dl.cloudsmith.io/public/cloudsmith/cli/python/simple/');
   } catch (error) {
