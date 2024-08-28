@@ -16,7 +16,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 Cloudsmith OIDC [documentation](https://help.cloudsmith.io/docs/openid-connect) 📚
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-github-action@v1
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -27,7 +27,7 @@ with:
 Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://help.cloudsmith.io/docs/service-accounts). 🔒
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-github-action@v1
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
 with:
   api-key: 'your-api-key'
 ```
@@ -48,7 +48,8 @@ on:
   push:
     branches:
       - main
-
+permission:
+  id-token: write
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -58,7 +59,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-github-action@v1
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
         with:
           oidc-namespace: 'your-oidc-namespace'
           oidc-service-slug: 'your-service-account-slug'
