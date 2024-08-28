@@ -33268,6 +33268,11 @@ const CLI_VERSION = core.getInput('cli-version');
 const EXECUTABLE_PATH = core.getInput('executable-path') || path.join(process.env.GITHUB_WORKSPACE, 'bin', 'cloudsmith');
 const PIP_INSTALL = core.getInput('pip-install') === 'true';
 
+// Define constants for URL construction
+const BASE_URL = 'https://dl.cloudsmith.io/public';
+const NAMESPACE = 'cloudsmith';
+const REPO_NAME = 'cli-zipapp';
+
 // Ensure the executable directory exists
 fs.mkdirSync(path.dirname(EXECUTABLE_PATH), { recursive: true });
 
@@ -33300,7 +33305,7 @@ function addPathAndCreateBatchScript() {
 // Download the latest release of the CLI
 async function downloadLatestRelease() {
   try {
-    const downloadUrl = 'https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/latest/cloudsmith.pyz';
+    const downloadUrl = `${BASE_URL}/${NAMESPACE}/${REPO_NAME}/raw/names/cloudsmith-cli/versions/latest/cloudsmith.pyz`;
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
     addPathAndCreateBatchScript();
   } catch (error) {
@@ -33311,7 +33316,7 @@ async function downloadLatestRelease() {
 // Download a specific release of the CLI by version
 async function downloadSpecificRelease(version) {
   try {
-    const downloadUrl = `https://dl.cloudsmith.io/public/bart-demo-org/cloudsmith-cli-zipapp/raw/names/cloudsmith-cli/versions/${version}/cloudsmith.pyz`;
+    const downloadUrl = `${BASE_URL}/${NAMESPACE}/${REPO_NAME}/raw/names/cloudsmith-cli/versions/${version}/cloudsmith.pyz`;
     await downloadFile(downloadUrl, EXECUTABLE_PATH);
     addPathAndCreateBatchScript();
   } catch (error) {
@@ -33334,7 +33339,7 @@ async function installCli() {
   try {
     if (PIP_INSTALL) {
       await installCliViaPip();
-    } else if (CLI_VERSION && CLI_VERSION !== 'none') {
+    } else if (CLI_VERSION && CLI_VERSION !== '') {
       await downloadSpecificRelease(CLI_VERSION);
     } else {
       await downloadLatestRelease();
