@@ -33253,6 +33253,70 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 3145:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+const fs = __nccwpck_require__(7147);
+const path = __nccwpck_require__(1017);
+const os = __nccwpck_require__(2037);
+const core = __nccwpck_require__(2186);
+
+function createConfigFile(apiHost, apiProxy, apiSslVerify, apiUserAgent) {
+  if (apiHost) {
+    apiHost = `https://${apiHost}`;
+  }
+  try {
+    const configContent = `# Default configuration
+[default]
+# The API host to connect to (default: api.cloudsmith.io).
+api_host=${apiHost || ''}
+
+# The API proxy to connect through (default: None).
+api_proxy=${apiProxy || ''}
+
+# Whether to verify SSL connection to the API (default: True)
+api_ssl_verify=${apiSslVerify || 'true'}
+
+# The user agent to use for requests (default: calculated).
+api_user_agent=${apiUserAgent || ''}
+`;
+
+    const configPath = getConfigPath();
+    const configDir = path.dirname(configPath);
+
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+
+    // Write config file
+    fs.writeFileSync(configPath, configContent, 'utf8');
+    core.info(`Config file created at: ${configPath}`);
+  } catch (error) {
+    core.warning(`Failed to create config file: ${error.message}`);
+  }
+}
+
+function getConfigPath() {
+  const homeDir = os.homedir();
+  
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA || path.join(homeDir, 'AppData', 'Local');
+    const roamingAppData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+    
+    // Check if Local path exists, otherwise use Roaming
+    const baseDir = fs.existsSync(localAppData) ? localAppData : roamingAppData;
+    return path.join(baseDir, 'cloudsmith', 'config.ini');
+  } else {
+    return path.join(homeDir, '.cloudsmith', 'config.ini');
+  }
+}
+
+module.exports = { createConfigFile };
+
+
+/***/ }),
+
 /***/ 9749:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -33366,20 +33430,26 @@ module.exports = {
 const axios = __nccwpck_require__(8757);
 const core = __nccwpck_require__(2186);
 
+const DEFAULT_API_HOST = 'api.cloudsmith.io';
+
 /**
  * Authenticates with Cloudsmith using OIDC and validates the token.
  *
  * @param {string} orgName - The organization name.
  * @param {string} serviceAccountSlug - The service account slug.
+ * @param {string} apiHost - The API host to connect to (optional).
  */
-async function authenticate(orgName, serviceAccountSlug) {
+async function authenticate(orgName, serviceAccountSlug, apiHost) {
   try {
     // Retrieve the OIDC ID token from GitHub Actions
     const idToken = await core.getIDToken("api://AzureADTokenExchange");
 
+    // Use the provided apiHost or default to api.cloudsmith.io
+    const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
+
     // Send a POST request to Cloudsmith API to authenticate using the OIDC token
     const response = await axios.post(
-      `https://api.cloudsmith.io/openid/${orgName}/`,
+      `${baseUrl}/openid/${orgName}/`,
       {
         oidc_token: idToken,
         service_slug: serviceAccountSlug,
@@ -33406,7 +33476,7 @@ async function authenticate(orgName, serviceAccountSlug) {
     );
 
     // Validate the token to ensure it is correct
-    await validateToken(token);
+    await validateToken(token, baseUrl);
   } catch (error) {
     // Set the GitHub Action as failed if any error occurs
     core.setFailed(`OIDC authentication failed: ${error.message}`);
@@ -33417,8 +33487,9 @@ async function authenticate(orgName, serviceAccountSlug) {
  * Validates the Cloudsmith API token by making a request to the user endpoint.
  *
  * @param {string} token - The Cloudsmith API token.
+ * @param {string} baseUrl - The base URL for the API.
  */
-async function validateToken(token) {
+async function validateToken(token, baseUrl) {
   const options = {
     method: "GET",
     headers: {
@@ -33430,7 +33501,7 @@ async function validateToken(token) {
   try {
     // Send a GET request to Cloudsmith API to validate the token
     const response = await fetch(
-      "https://api.cloudsmith.io/v1/user/self/",
+      `${baseUrl}/v1/user/self/`,
       options
     );
 
@@ -42972,6 +43043,7 @@ var __webpack_exports__ = {};
 const core = __nccwpck_require__(2186);
 const oidcAuth = __nccwpck_require__(1217);
 const { installCli } = __nccwpck_require__(9749);
+const { createConfigFile } = __nccwpck_require__(3145);
 
 async function run() {
   try {
@@ -42979,15 +43051,26 @@ async function run() {
     const orgName = core.getInput('oidc-namespace');
     const serviceAccountSlug = core.getInput('oidc-service-slug');
     const apiKey = core.getInput('api-key');
+    
+    // Cloudsmith CLI optional inputs
+    const apiHost = core.getInput('api-host');
+    const apiProxy = core.getInput('api-proxy');
+    const apiSslVerify = core.getInput('api-ssl-verify');
+    const apiUserAgent = core.getInput('api-user-agent');
 
-    // Authenticate using OIDC if inputs are provided, otherwise use API key
-    if (orgName && serviceAccountSlug) {
-      await oidcAuth.authenticate(orgName, serviceAccountSlug);
-    } else if (apiKey) {
+    // Create config file for Cloudsmith CLI only if any of the optional inputs are provided
+    if (apiHost || apiProxy || apiSslVerify || apiUserAgent) {
+      createConfigFile(apiHost, apiProxy, apiSslVerify, apiUserAgent);
+    }
+
+    // Authenticate based on the provided inputs
+    if (apiKey) {
       core.exportVariable("CLOUDSMITH_API_KEY", apiKey);
       core.info("Using provided API key for authentication.");
+    } else if (orgName && serviceAccountSlug) {
+      await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost);
     } else {
-      throw new Error("Either OIDC inputs or API key must be provided for authentication.");
+      throw new Error("Either API key or OIDC inputs (namespace and service account slug) must be provided for authentication.");
     }
 
     // Install the CLI
@@ -42998,6 +43081,7 @@ async function run() {
 }
 
 run();
+
 })();
 
 module.exports = __webpack_exports__;

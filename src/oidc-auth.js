@@ -1,20 +1,26 @@
 const axios = require("axios");
 const core = require("@actions/core");
 
+const DEFAULT_API_HOST = 'api.cloudsmith.io';
+
 /**
  * Authenticates with Cloudsmith using OIDC and validates the token.
  *
  * @param {string} orgName - The organization name.
  * @param {string} serviceAccountSlug - The service account slug.
+ * @param {string} apiHost - The API host to connect to (optional).
  */
-async function authenticate(orgName, serviceAccountSlug) {
+async function authenticate(orgName, serviceAccountSlug, apiHost) {
   try {
     // Retrieve the OIDC ID token from GitHub Actions
     const idToken = await core.getIDToken("api://AzureADTokenExchange");
 
+    // Use the provided apiHost or default to api.cloudsmith.io
+    const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
+
     // Send a POST request to Cloudsmith API to authenticate using the OIDC token
     const response = await axios.post(
-      `https://api.cloudsmith.io/openid/${orgName}/`,
+      `${baseUrl}/openid/${orgName}/`,
       {
         oidc_token: idToken,
         service_slug: serviceAccountSlug,
@@ -41,7 +47,7 @@ async function authenticate(orgName, serviceAccountSlug) {
     );
 
     // Validate the token to ensure it is correct
-    await validateToken(token);
+    await validateToken(token, baseUrl);
   } catch (error) {
     // Set the GitHub Action as failed if any error occurs
     core.setFailed(`OIDC authentication failed: ${error.message}`);
@@ -52,8 +58,9 @@ async function authenticate(orgName, serviceAccountSlug) {
  * Validates the Cloudsmith API token by making a request to the user endpoint.
  *
  * @param {string} token - The Cloudsmith API token.
+ * @param {string} baseUrl - The base URL for the API.
  */
-async function validateToken(token) {
+async function validateToken(token, baseUrl) {
   const options = {
     method: "GET",
     headers: {
@@ -65,7 +72,7 @@ async function validateToken(token) {
   try {
     // Send a GET request to Cloudsmith API to validate the token
     const response = await fetch(
-      "https://api.cloudsmith.io/v1/user/self/",
+      `${baseUrl}/v1/user/self/`,
       options
     );
 
