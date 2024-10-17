@@ -2,6 +2,8 @@
 
 This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OIDC or API Key. 🚀
 
+> **⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
+
 ## Inputs
 
 - [`cli-version`](action.yml): A specific version of the Cloudsmith CLI to install (optional). 📦
