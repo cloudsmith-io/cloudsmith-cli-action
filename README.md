@@ -11,12 +11,19 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 - [`pip-install`](action.yml): Install the Cloudsmith CLI via pip (optional). 🐍
 - [`executable-path`](action.yml): Path to the Cloudsmith CLI executable (optional, default: `GITHUB_WORKSPACE/bin/`). 🛠️
 
+## CLI Configuration Inputs ([documentation](https://github.com/cloudsmith-io/cloudsmith-cli?tab=readme-ov-file#non-credentials-configini))
+
+- [`api-host`](action.yml): API Host for Cloudsmith (optional). 🌐
+- [`api-proxy`](action.yml): API Proxy for Cloudsmith (optional). 🔗
+- [`api-ssl-verify`](action.yml): Verify SSL certificates for Cloudsmith API (optional). 🔒
+- [`api-user-agent`](action.yml): User Agent for Cloudsmith API (optional). 🕵️‍♂️
+
 ## Example Usage with OIDC
 
 Cloudsmith OIDC [documentation](https://help.cloudsmith.io/docs/openid-connect) 📚
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -27,7 +34,7 @@ with:
 Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://help.cloudsmith.io/docs/service-accounts). 🔒
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
 with:
   api-key: 'your-api-key'
 ```
@@ -59,7 +66,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.0
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
         with:
           oidc-namespace: 'your-oidc-namespace'
           oidc-service-slug: 'your-service-account-slug'
@@ -76,3 +83,7 @@ Please check our [CONTRIBUTION](CONTRIBUTION.md) doc for more information. 🤝
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details. 📄
+
+## Support
+
+If you have any questions or need further assistance, please open an issue on GitHub. We're here to help! 💬 Alternatively, you can contact us at [support.cloudsmith.com](https://support.cloudsmith.com/).

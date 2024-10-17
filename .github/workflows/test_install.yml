@@ -29,8 +29,9 @@ jobs:
       - name: "📦 Run Cloudsmith CLI Installer"
         uses: ./
         with:
-          oidc-namespace: ${{ vars.NAMESPACE }}
-          oidc-service-slug: ${{ vars.SERVICE_ACCOUNT }}
+          api-user-agent: "gha-test"
+          oidc-namespace: ${{ matrix.auth-method == 'oidc' && vars.NAMESPACE || '' }}
+          oidc-service-slug: ${{ matrix.auth-method == 'oidc' && vars.SERVICE_ACCOUNT || '' }}
           pip-install: ${{ matrix.install-method == 'pip' }}
           api-key: ${{ matrix.auth-method == 'api-key' && secrets.CLOUDSMITH_API_KEY || '' }}
       - name: "🔍 Verify Cloudsmith CLI Authentication (Linux and macOS)"
@@ -43,3 +44,28 @@ jobs:
         run: |
           cloudsmith whoami
         shell: cmd
+      - name: "📄 Read Config File (Linux and macOS)"
+        if: runner.os != 'Windows'
+        run: |
+          CONFIG_FILE="$HOME/.cloudsmith/config.ini"
+          if [ -f "$CONFIG_FILE" ]; then
+            echo "Config file contents:"
+            cat "$CONFIG_FILE"
+          else
+            echo "Config file not found at $CONFIG_FILE"
+          fi
+        shell: bash
+      - name: "📄 Read Config File (Windows)"
+        if: runner.os == 'Windows'
+        run: |
+          $configFile = "$env:LOCALAPPDATA\cloudsmith\config.ini"
+          if (!(Test-Path $configFile)) {
+            $configFile = "$env:APPDATA\cloudsmith\config.ini"
+          }
+          if (Test-Path $configFile) {
+            Write-Output "Config file contents:"
+            Get-Content $configFile
+          } else {
+            Write-Output "Config file not found at $configFile"
+          }
+        shell: pwsh
