@@ -69,3 +69,44 @@ jobs:
             Write-Output "Config file not found at $configFile"
           }
         shell: pwsh
+
+  test-oidc-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: "Set up Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          
+      - name: "Install dependencies"
+        run: npm install
+        
+      - name: "Build project"
+        run: npm run build
+      
+      - name: OIDC Authentication Only
+        uses: ./
+        with:
+          oidc-namespace: ${{ vars.NAMESPACE }}
+          oidc-service-slug: ${{ vars.SERVICE_ACCOUNT }}
+          oidc-auth-only: 'true'
+      
+      - name: Test Authentication
+        run: |
+          curl -X GET \
+            -H "Authorization: Bearer $CLOUDSMITH_API_KEY" \
+            https://api.cloudsmith.io/v1/user/self/ \
+            | jq -r '.authenticated'
+
+      - name: Test CLI Installation should fail
+        id: cli-test
+        continue-on-error: true
+        run: cloudsmith --version
+        
+      - name: Verify CLI installation failed
+        if: steps.cli-test.outcome == 'success'
+        run: |
+          echo "CLI installation should have failed but succeeded"
+          exit 1

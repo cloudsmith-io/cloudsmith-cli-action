@@ -10,6 +10,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 - [`api-key`](action.yml): API Key for Cloudsmith (optional). 🔑
 - [`oidc-namespace`](action.yml): Cloudsmith organisation/namespace for OIDC (optional). 🌐
 - [`oidc-service-slug`](action.yml): Cloudsmith service account slug for OIDC (optional). 🐌
+- [`oidc-auth-only`](action.yml): Only perform OIDC authentication without installing the CLI (optional, default: false). 🔐
 - [`pip-install`](action.yml): Install the Cloudsmith CLI via pip (optional). 🐍
 - [`executable-path`](action.yml): Path to the Cloudsmith CLI executable (optional, default: `GITHUB_WORKSPACE/bin/`). 🛠️
 
@@ -25,7 +26,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 Cloudsmith OIDC [documentation](https://help.cloudsmith.io/docs/openid-connect) 📚
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -36,10 +37,27 @@ with:
 Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://help.cloudsmith.io/docs/service-accounts). 🔒
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
 with:
   api-key: 'your-api-key'
 ```
+
+## Example Usage with OIDC Authentication Only
+
+If you only need to authenticate with Cloudsmith's API without installing the CLI:
+
+```yaml
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
+with:
+  oidc-namespace: 'your-oidc-namespace'
+  oidc-service-slug: 'your-service-account-slug'
+  oidc-auth-only: 'true'
+```
+
+This will:
+- Perform OIDC authentication
+- Set the OIDC token as `CLOUDSMITH_API_KEY` environment variable
+- Skip CLI installation
 
 ## Cloudsmith CLI Commands
 
@@ -68,7 +86,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.1
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
         with:
           oidc-namespace: 'your-oidc-namespace'
           oidc-service-slug: 'your-service-account-slug'
@@ -77,7 +95,6 @@ jobs:
         run: |
           cloudsmith push python your-namespace/your-repository dist/*.tar.gz
 ```
-
 ## Contribution
 
 Please check our [CONTRIBUTION](CONTRIBUTION.md) doc for more information. 🤝
@@ -89,3 +106,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 If you have any questions or need further assistance, please open an issue on GitHub. We're here to help! 💬 Alternatively, you can contact us at [support.cloudsmith.com](https://support.cloudsmith.com/).
+

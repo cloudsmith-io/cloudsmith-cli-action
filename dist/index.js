@@ -43073,8 +43073,12 @@ async function run() {
       throw new Error("Either API key or OIDC inputs (namespace and service account slug) must be provided for authentication.");
     }
 
-    // Install the CLI
-    await installCli();
+    // Install the CLI only if oidc-auth-only is false
+    const oidcAuthOnly = core.getBooleanInput('oidc-auth-only');
+    if (!oidcAuthOnly) {
+      await installCli();
+    }
+  
   } catch (error) {
     core.setFailed(`Action failed: ${error.message}`);
   }
