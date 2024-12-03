@@ -18,6 +18,10 @@ inputs:
     description: 'Cloudsmith service account slug for OIDC'
     default: ''
     required: false
+  oidc-auth-only:
+    description: 'Only perform OIDC authentication without installing the CLI'
+    default: 'false'
+    required: false
   pip-install:
     description: 'Install the Cloudsmith CLI via pip'
     default: 'false'
