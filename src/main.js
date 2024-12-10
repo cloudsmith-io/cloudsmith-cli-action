@@ -9,6 +9,7 @@ async function run() {
     const orgName = core.getInput('oidc-namespace');
     const serviceAccountSlug = core.getInput('oidc-service-slug');
     const apiKey = core.getInput('api-key');
+    const oidcAuthRetry = Math.min(Math.max(parseInt(core.getInput('oidc-auth-retry') || '3', 10), 0), 10);
     
     // Cloudsmith CLI optional inputs
     const apiHost = core.getInput('api-host');
@@ -26,7 +27,7 @@ async function run() {
       core.exportVariable("CLOUDSMITH_API_KEY", apiKey);
       core.info("Using provided API key for authentication.");
     } else if (orgName && serviceAccountSlug) {
-      await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost);
+      await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost, oidcAuthRetry);
     } else {
       throw new Error("Either API key or OIDC inputs (namespace and service account slug) must be provided for authentication.");
     }
