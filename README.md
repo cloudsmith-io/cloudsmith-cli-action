@@ -6,27 +6,28 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 
 ## Inputs
 
-- [`cli-version`](action.yml): A specific version of the Cloudsmith CLI to install (optional). 📦
-- [`api-key`](action.yml): API Key for Cloudsmith (optional). 🔑
-- [`oidc-namespace`](action.yml): Cloudsmith organisation/namespace for OIDC (optional). 🌐
-- [`oidc-service-slug`](action.yml): Cloudsmith service account slug for OIDC (optional). 🐌
-- [`oidc-auth-only`](action.yml): Only perform OIDC authentication without installing the CLI (optional, default: false). 🔐
-- [`pip-install`](action.yml): Install the Cloudsmith CLI via pip (optional). 🐍
-- [`executable-path`](action.yml): Path to the Cloudsmith CLI executable (optional, default: `GITHUB_WORKSPACE/bin/`). 🛠️
+- `cli-version` (action.yml): A specific version of the Cloudsmith CLI to install (optional). 📦
+- `api-key` (action.yml): API Key for Cloudsmith (optional). 🔑
+- `oidc-namespace` (action.yml): Cloudsmith organisation/namespace for OIDC (optional). 🌐
+- `oidc-service-slug` (action.yml): Cloudsmith service account slug for OIDC (optional). 🐌
+- `oidc-auth-only` (action.yml): Only perform OIDC authentication without installing the CLI (optional, default: false). 🔐
+- `oidc-auth-retry` (action.yml): Number of retry attempts for OIDC authentication (0-10), 5 seconds delay between retries (optional, default: 3). 🔄
+- `pip-install` (action.yml): Install the Cloudsmith CLI via pip (optional). 🐍
+- `executable-path` (action.yml): Path to the Cloudsmith CLI executable (optional, default: `GITHUB_WORKSPACE/bin/`). 🛠️
 
 ## CLI Configuration Inputs ([documentation](https://github.com/cloudsmith-io/cloudsmith-cli?tab=readme-ov-file#non-credentials-configini))
 
-- [`api-host`](action.yml): API Host for Cloudsmith (optional). 🌐
-- [`api-proxy`](action.yml): API Proxy for Cloudsmith (optional). 🔗
-- [`api-ssl-verify`](action.yml): Verify SSL certificates for Cloudsmith API (optional). 🔒
-- [`api-user-agent`](action.yml): User Agent for Cloudsmith API (optional). 🕵️‍♂️
+- `api-host`: API Host for Cloudsmith (optional). 🌐
+- `api-proxy`: API Proxy for Cloudsmith (optional). 🔗
+- `api-ssl-verify`: Verify SSL certificates for Cloudsmith API (optional). 🔒
+- `api-user-agent`: User Agent for Cloudsmith API (optional). 🕵️‍♂️
 
 ## Example Usage with OIDC
 
 Cloudsmith OIDC [documentation](https://help.cloudsmith.io/docs/openid-connect) 📚
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -37,7 +38,7 @@ with:
 Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://help.cloudsmith.io/docs/service-accounts). 🔒
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
 with:
   api-key: 'your-api-key'
 ```
@@ -47,7 +48,7 @@ with:
 If you only need to authenticate with Cloudsmith's API without installing the CLI:
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
+uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -86,7 +87,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.2
+        uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
         with:
           oidc-namespace: 'your-oidc-namespace'
           oidc-service-slug: 'your-service-account-slug'
