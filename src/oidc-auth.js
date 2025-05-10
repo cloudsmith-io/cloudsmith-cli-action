@@ -35,7 +35,7 @@ async function authenticate(orgName, serviceAccountSlug, apiHost, retryAttempts 
     // Check if the required environment variable is set
     if (!process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
       core.setFailed(
-        "Environment variable ACTIONS_ID_TOKEN_REQUEST_URL is not set. Did you add the permission "actions:write" to your workflow?"
+        "Environment variable ACTIONS_ID_TOKEN_REQUEST_URL is not set. Did you add the permission "id-token: write" to your workflow?"
       );
       return; // Exit early if the variable is not set
     }
