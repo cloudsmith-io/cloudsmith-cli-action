@@ -27,6 +27,11 @@ async function run() {
       core.exportVariable("CLOUDSMITH_API_KEY", apiKey);
       core.info("Using provided API key for authentication.");
     } else if (orgName && serviceAccountSlug) {
+
+      if (!process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
+        throw new Error("Environment variable ACTIONS_ID_TOKEN_REQUEST_URL is not set. Did you add the permission 'id-token: write' to your workflow?");
+      } 
+
       await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost, oidcAuthRetry);
     } else {
       throw new Error("Either API key or OIDC inputs (namespace and service account slug) must be provided for authentication.");
