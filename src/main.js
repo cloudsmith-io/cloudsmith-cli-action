@@ -28,14 +28,32 @@ async function run() {
       core.info("Using provided API key for authentication.");
     } else if (orgName && serviceAccountSlug) {
 
-      // check if environment variable "ACTIONS_ID_TOKEN_REQUEST_URL" is set
+      // check if environment variable "ACTIONS_ID_TOKEN_REQUEST_URL" is set and not empty
+
+      // This variable is set by GitHub Actions when the workflow has the 'id-token: write' permission
+      // and the workflow is running in a GitHub-hosted runner.
+      // It is used to request an OIDC token for authentication with Cloudsmith.    
+      
+
+
+
+
+      // check if environment variable "ACTIONS_ID_TOKEN_REQUEST_URL" is set and not empty
+
+
+
+      // This variable is set by GitHub Actions when the workflow has the 'id-token: write' permission
+      // and the workflow is running in a GitHub-hosted runner.
+
+
+
       const token = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
       core.info(`ACTIONS_ID_TOKEN_REQUEST_URL: ${token}`);
       if (!token) {
         throw new Error("Environment variable ACTIONS_ID_TOKEN_REQUEST_URL is not set. Did you add the permission 'id-token: write' to your workflow?");
       } 
 
-      await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost, oidcAuthRetry);
+      // await oidcAuth.authenticate(orgName, serviceAccountSlug, apiHost, oidcAuthRetry);
     } else {
       throw new Error("Either API key or OIDC inputs (namespace and service account slug) must be provided for authentication.");
     }

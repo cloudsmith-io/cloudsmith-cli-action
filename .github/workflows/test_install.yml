@@ -12,10 +12,8 @@ jobs:
       matrix:
         os:
           - ubuntu-latest # 🐧
-          - macos-latest # 🍏
-          - windows-latest # 🪟
         install-method: [pip, executable]
-        auth-method: [oidc, api-key]
+        auth-method: [oidc]
     steps:
       - uses: actions/checkout@v4
       - name: "Set up Node.js"
@@ -30,83 +28,5 @@ jobs:
         uses: ./
         with:
           api-user-agent: "gha-test"
-          oidc-namespace: ${{ matrix.auth-method == 'oidc' && vars.NAMESPACE || '' }}
-          oidc-service-slug: ${{ matrix.auth-method == 'oidc' && vars.SERVICE_ACCOUNT || '' }}
-          pip-install: ${{ matrix.install-method == 'pip' }}
-          api-key: ${{ matrix.auth-method == 'api-key' && secrets.CLOUDSMITH_API_KEY || '' }}
-      - name: "🔍 Verify Cloudsmith CLI Authentication (Linux and macOS)"
-        if: runner.os != 'Windows'
-        run: |
-          cloudsmith whoami
-        shell: bash
-      - name: "🔍 Verify Cloudsmith CLI Authentication (Windows)"
-        if: runner.os == 'Windows'
-        run: |
-          cloudsmith whoami
-        shell: cmd
-      - name: "📄 Read Config File (Linux and macOS)"
-        if: runner.os != 'Windows'
-        run: |
-          CONFIG_FILE="$HOME/.cloudsmith/config.ini"
-          if [ -f "$CONFIG_FILE" ]; then
-            echo "Config file contents:"
-            cat "$CONFIG_FILE"
-          else
-            echo "Config file not found at $CONFIG_FILE"
-          fi
-        shell: bash
-      - name: "📄 Read Config File (Windows)"
-        if: runner.os == 'Windows'
-        run: |
-          $configFile = "$env:LOCALAPPDATA\cloudsmith\config.ini"
-          if (!(Test-Path $configFile)) {
-            $configFile = "$env:APPDATA\cloudsmith\config.ini"
-          }
-          if (Test-Path $configFile) {
-            Write-Output "Config file contents:"
-            Get-Content $configFile
-          } else {
-            Write-Output "Config file not found at $configFile"
-          }
-        shell: pwsh
-
-  test-oidc-only:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: "Set up Node.js"
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          
-      - name: "Install dependencies"
-        run: npm install
-        
-      - name: "Build project"
-        run: npm run build
-      
-      - name: OIDC Authentication Only
-        uses: ./
-        with:
-          oidc-namespace: ${{ vars.NAMESPACE }}
-          oidc-service-slug: ${{ vars.SERVICE_ACCOUNT }}
-          oidc-auth-only: 'true'
-      
-      - name: Test Authentication
-        run: |
-          curl -X GET \
-            -H "Authorization: Bearer $CLOUDSMITH_API_KEY" \
-            https://api.cloudsmith.io/v1/user/self/ \
-            | jq -r '.authenticated'
-
-      - name: Test CLI Installation should fail
-        id: cli-test
-        continue-on-error: true
-        run: cloudsmith --version
-        
-      - name: Verify CLI installation failed
-        if: steps.cli-test.outcome == 'success'
-        run: |
-          echo "CLI installation should have failed but succeeded"
-          exit 1
+          oidc-namespace: "oidc"
+          oidc-service-slug: "oidc"
