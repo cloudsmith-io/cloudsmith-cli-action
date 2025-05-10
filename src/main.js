@@ -29,7 +29,9 @@ async function run() {
     } else if (orgName && serviceAccountSlug) {
 
       // check if environment variable "ACTIONS_ID_TOKEN_REQUEST_URL" is set
-      if (!process.env.ACTIONS_ID_TOKEN_REQUEST_URL) {
+      const token = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+      core.info(`ACTIONS_ID_TOKEN_REQUEST_URL: ${token}`);
+      if (!token) {
         throw new Error("Environment variable ACTIONS_ID_TOKEN_REQUEST_URL is not set. Did you add the permission 'id-token: write' to your workflow?");
       } 
 
