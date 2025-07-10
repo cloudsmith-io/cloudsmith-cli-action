@@ -24,7 +24,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 
 ## Example Usage with OIDC
 
-Cloudsmith OIDC [documentation](https://help.cloudsmith.io/docs/openid-connect) 📚
+Cloudsmith OIDC [documentation](https://docs.cloudsmith.com/access-control/openid-connect) 📚
 
 ```yaml
 uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
@@ -35,7 +35,7 @@ with:
 
 ## Example Usage with API Key
 
-Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://help.cloudsmith.io/docs/service-accounts). 🔒
+Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://docs.cloudsmith.com/accounts-and-teams/service-accounts). 🔒
 
 ```yaml
 uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
@@ -67,7 +67,7 @@ Full CLI feature list can be found [here](https://github.com/cloudsmith-io/cloud
 
 ### Publish a package
 
-For all supported package formats and upload commands please visit our [Supported Formats](https://help.cloudsmith.io/docs/supported-formats) page. 📦
+For all supported package formats and upload commands please visit our [Supported Formats](https://docs.cloudsmith.com/formats) page. 📦
 
 ```yaml
 name: Publish Python Package
