@@ -76,8 +76,9 @@ on:
   push:
     branches:
       - main
-permission:
+permissions:
   id-token: write
+  contents: read
 jobs:
   publish:
     runs-on: ubuntu-latest
