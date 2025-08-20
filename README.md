@@ -24,7 +24,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 
 ## Example Usage with OIDC
 
-Cloudsmith OIDC [documentation](https://docs.cloudsmith.com/access-control/openid-connect) 📚
+Cloudsmith OIDC [documentation](https://docs.cloudsmith.com/authentication/openid-connect) 📚
 
 ```yaml
 uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
