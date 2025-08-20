@@ -35,7 +35,7 @@ with:
 
 ## Example Usage with API Key
 
-Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/), for CI-CD deployments we recommend using [Service Accounts](https://docs.cloudsmith.com/accounts-and-teams/service-accounts). 🔒
+Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/). For CI-CD deployments we recommend using [Service Accounts](https://docs.cloudsmith.com/accounts-and-teams/service-accounts). 🔒
 
 ```yaml
 uses: cloudsmith-io/cloudsmith-cli-action@v1.0.3
