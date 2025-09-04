@@ -63,6 +63,8 @@ async function authenticate(orgName, serviceAccountSlug, apiHost, retryAttempts 
 
       // Export the API token as an environment variable
       core.exportVariable("CLOUDSMITH_API_KEY", token);
+      // Set the token as an output
+      core.setOutput('oidc-token', token);
       core.info(
         "Authenticated successfully with OIDC and saved JWT (token) to `CLOUDSMITH_API_KEY` environment variable."
       );
