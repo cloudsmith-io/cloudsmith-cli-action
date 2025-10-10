@@ -24,6 +24,8 @@ jobs:
           node-version: "20"
       - name: "Install dependencies"
         run: npm install
+      - name: "Run eslint"
+        run: npm run lint
       - name: "Build project"
         run: npm run build
       - name: "📦 Run Cloudsmith CLI Installer"
@@ -82,7 +84,10 @@ jobs:
           
       - name: "Install dependencies"
         run: npm install
-        
+
+      - name: "Run eslint"
+        run: npm run lint
+
       - name: "Build project"
         run: npm run build
       
