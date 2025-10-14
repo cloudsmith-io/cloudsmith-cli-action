@@ -107,7 +107,7 @@ async function retryWithDelay(fn, retries, operationType, idToken = null) {
 
       if (attempt < retries) {
         const delayMs = RETRY_DELAY_MS * Math.pow(2, attempt);
-        const jitter = Math.random() * 1000;
+        const jitter = Math.random() * delayMs * 0.1;
         const totalDelay = delayMs + jitter;
 
         core.info(
