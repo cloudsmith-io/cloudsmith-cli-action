@@ -3,6 +3,7 @@ const core = require("@actions/core");
 
 const DEFAULT_API_HOST = "api.cloudsmith.io";
 const RETRY_DELAY_MS = 5000; // 5 seconds delay between attempts
+const REQUEST_TIMEOUT_MS = 30000;
 
 function decodeJWT(token) {
   try {
@@ -29,8 +30,9 @@ function decodeJWT(token) {
   }
 }
 
-function logDetailedError(error, idToken = null) {
-  core.error("=== OIDC Authentication Error Details ===");
+function logHttpError(error, context = "") {
+  const header = context ? `=== ${context} ===` : "=== HTTP Error ===";
+  core.error(header);
   core.error(`Error Message: ${error.message}`);
 
   if (error.code) {
@@ -52,6 +54,17 @@ function logDetailedError(error, idToken = null) {
     core.error(`  Host: ${error.request.host}`);
   }
 
+  if (error.stack) {
+    core.error("Stack Trace:");
+    core.error(error.stack);
+  }
+
+  core.error("=========================================");
+}
+
+function logDetailedError(error, idToken = null) {
+  logHttpError(error, "OIDC Authentication Error Details");
+
   if (idToken) {
     core.error("=== JWT Token Information ===");
     const decoded = decodeJWT(idToken);
@@ -64,31 +77,43 @@ function logDetailedError(error, idToken = null) {
       core.error("JWT Claims (Payload):");
       core.error(JSON.stringify(decoded.payload, null, 2));
     }
+    core.error("=========================================");
   }
-
-  if (error.stack) {
-    core.error("Stack Trace:");
-    core.error(error.stack);
-  }
-
-  core.error("=========================================");
 }
 
-async function retryWithDelay(fn, retries, idToken) {
+async function retryWithDelay(fn, retries, operationType, idToken = null) {
   let lastError;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (error) {
       lastError = error;
-      core.error(`OIDC authentication attempt ${attempt} failed`);
-      logDetailedError(error, idToken);
+
+      core.error(`${operationType} attempt ${attempt} failed`);
+      if (idToken) {
+        logDetailedError(error, idToken);
+      } else {
+        logHttpError(error, `${operationType} Error`);
+      }
+
+      const isRetryable = !error.response || error.response.status >= 500;
+
+      if (!isRetryable) {
+        core.error(
+          `Received 4xx error (${error.response?.status}), not retrying`,
+        );
+        throw lastError;
+      }
 
       if (attempt < retries) {
+        const delayMs = RETRY_DELAY_MS * Math.pow(2, attempt);
+        const jitter = Math.random() * delayMs * 0.1;
+        const totalDelay = delayMs + jitter;
+
         core.info(
-          `OIDC authentication attempt ${attempt} failed, retrying in ${RETRY_DELAY_MS / 1000} seconds...`,
+          `${operationType} attempt ${attempt} failed, retrying in ${(totalDelay / 1000).toFixed(1)} seconds...`,
         );
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+        await new Promise((resolve) => setTimeout(resolve, totalDelay));
       }
     }
   }
@@ -102,14 +127,18 @@ async function retryWithDelay(fn, retries, idToken) {
  * @param {string} serviceAccountSlug - The service account slug.
  * @param {string} apiHost - The API host to connect to (optional).
  * @param {number} retryAttempts - Number of retry attempts for authentication (0-10).
+ * @param {boolean} validateToken - Whether to validate the token after authentication (default: true).
  */
 async function authenticate(
   orgName,
   serviceAccountSlug,
   apiHost,
   retryAttempts = 3,
+  validateToken = true,
 ) {
+  const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
   let idToken;
+  let token;
 
   try {
     core.info(
@@ -119,12 +148,9 @@ async function authenticate(
     // Retrieve the OIDC ID token from GitHub Actions
     idToken = await core.getIDToken("api://AzureADTokenExchange");
 
-    // Use the provided apiHost or default to api.cloudsmith.io
+    // Authenticate with Cloudsmith using OIDC token
     await retryWithDelay(
       async () => {
-        const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
-
-        // Send a POST request to Cloudsmith API to authenticate using the OIDC token
         const response = await axios.post(
           `${baseUrl}/openid/${orgName}/`,
           {
@@ -135,32 +161,48 @@ async function authenticate(
             headers: {
               "Content-Type": "application/json",
             },
+            timeout: REQUEST_TIMEOUT_MS,
           },
         );
 
-        // Check if the authentication was successful
         if (response.status !== 200 && response.status !== 201) {
           throw new Error(`Failed to authenticate: ${response.statusText}`);
         }
 
-        // Extract the API token from the response
-        const token = response.data.token;
+        token = response.data.token;
 
-        // Export the API token as an environment variable
+        if (!token || typeof token !== "string" || token.trim() === "") {
+          const error = new Error(
+            "Cloudsmith returned an empty or invalid token in the response",
+          );
+          error.response = response;
+          throw error;
+        }
+
         core.exportVariable("CLOUDSMITH_API_KEY", token);
         core.info(
           "Authenticated successfully with OIDC and saved JWT (token) to `CLOUDSMITH_API_KEY` environment variable.",
         );
-
-        // Validate the token to ensure it is correct
-        await validateToken(token, baseUrl);
       },
       retryAttempts,
+      "OIDC authentication",
       idToken,
     );
+
+    // Optionally validate the token to ensure it is correct
+    if (validateToken) {
+      core.info("Validating API token...");
+      await retryWithDelay(
+        async () => {
+          await validateApiToken(token, baseUrl);
+        },
+        retryAttempts,
+        "Token validation",
+      );
+    }
   } catch (error) {
-    // Set the GitHub Action as failed if any error occurs
-    core.setFailed(`OIDC authentication failed: ${error.message}`);
+    const operation = token ? "Token validation" : "OIDC authentication";
+    core.setFailed(`${operation} failed: ${error.message}`);
   }
 }
 
@@ -170,38 +212,17 @@ async function authenticate(
  * @param {string} token - The Cloudsmith API token.
  * @param {string} baseUrl - The base URL for the API.
  */
-async function validateToken(token, baseUrl) {
-  const options = {
-    method: "GET",
+async function validateApiToken(token, baseUrl) {
+  const response = await axios.get(`${baseUrl}/v1/user/self/`, {
     headers: {
       accept: "application/json",
       "X-Api-Key": token,
     },
-  };
+    timeout: REQUEST_TIMEOUT_MS,
+  });
 
-  try {
-    // Send a GET request to Cloudsmith API to validate the token
-    const response = await fetch(`${baseUrl}/v1/user/self/`, options);
-
-    // Check if the token validation was successful
-    if (!response.ok) {
-      const responseBody = await response.text();
-      core.error("=== Token Validation Error ===");
-      core.error(`HTTP Status Code: ${response.status}`);
-      core.error(`HTTP Status Text: ${response.statusText}`);
-      core.error("Response Body:");
-      core.error(responseBody);
-      core.error("==============================");
-      throw new Error(`Failed to validate token: ${response.statusText}`);
-    }
-
-    // Parse the response data
-    const data = await response.json();
-    core.info(`User has successfully authenticated as ${data.name}.`);
-  } catch (error) {
-    // Set the GitHub Action as failed if any error occurs during token validation
-    core.setFailed(`Token validation failed: ${error.message}`);
-  }
+  const data = response.data;
+  core.info(`User has successfully authenticated as ${data.name}.`);
 }
 
 module.exports = { authenticate };

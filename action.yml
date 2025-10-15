@@ -26,6 +26,10 @@ inputs:
     description: 'Number of retry attempts for OIDC authentication (0-10)'
     default: '3'
     required: false
+  oidc-token-validate:
+    description: 'Validate the OIDC token after authentication'
+    default: 'true'
+    required: false
   pip-install:
     description: 'Install the Cloudsmith CLI via pip'
     default: 'false'
