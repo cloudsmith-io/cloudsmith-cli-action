@@ -135,6 +135,7 @@ async function authenticate(
   apiHost,
   retryAttempts = 3,
   validateToken = true,
+  oidcAudience = 'api://AzureADTokenExchange',
 ) {
   const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
   let idToken;
@@ -145,8 +146,12 @@ async function authenticate(
       `Attempting OIDC authentication with ${retryAttempts} retry attempts...`,
     );
 
-    // Retrieve the OIDC ID token from GitHub Actions
-    idToken = await core.getIDToken("api://AzureADTokenExchange");
+    // Retrieve the OIDC ID token from GitHub Actions using configurable audience
+    const audience = oidcAudience && oidcAudience.trim() !== ''
+      ? oidcAudience.trim()
+      : 'api://AzureADTokenExchange';
+    core.info(`Requesting GitHub OIDC token for audience: ${audience}`);
+    idToken = await core.getIDToken(audience);
 
     // Authenticate with Cloudsmith using OIDC token
     await retryWithDelay(

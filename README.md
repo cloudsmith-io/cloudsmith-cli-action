@@ -12,6 +12,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 - `oidc-service-slug` (action.yml): Cloudsmith service account slug for OIDC (optional). 🐌
 - `oidc-auth-only` (action.yml): Only perform OIDC authentication without installing the CLI (optional, default: false). 🔐
 - `oidc-auth-retry` (action.yml): Number of retry attempts for OIDC authentication (0-10), 5 seconds delay between retries (optional, default: 3). 🔄
+- `oidc-audience` (action.yml): Audience to request when retrieving the GitHub OIDC token. Defaults to `api://AzureADTokenExchange` for backward compatibility. Set to `https://github.com/<org-name>` (e.g. `https://github.com/cloudsmith-io`) to use the standard GitHub audience. 🎯
 - `pip-install` (action.yml): Install the Cloudsmith CLI via pip (optional). 🐍
 - `executable-path` (action.yml): Path to the Cloudsmith CLI executable (optional, default: `GITHUB_WORKSPACE/bin/`). 🛠️
 

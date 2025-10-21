@@ -14,6 +14,7 @@ async function run() {
       10,
     );
     const oidcTokenValidate = core.getBooleanInput("oidc-token-validate");
+  const oidcAudience = core.getInput("oidc-audience");
 
     // Cloudsmith CLI optional inputs
     const apiHost = core.getInput("api-host");
@@ -43,6 +44,7 @@ async function run() {
         apiHost,
         oidcAuthRetry,
         oidcTokenValidate,
+        oidcAudience,
       );
     } else {
       throw new Error(
