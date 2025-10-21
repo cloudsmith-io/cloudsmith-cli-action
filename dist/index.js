@@ -35847,9 +35847,7 @@ async function authenticate(
     );
 
     // Retrieve the OIDC ID token from GitHub Actions using configurable audience
-    const audience = oidcAudience && oidcAudience.trim() !== ''
-      ? oidcAudience.trim()
-      : 'api://AzureADTokenExchange';
+    const audience = oidcAudience.trim();
     core.info(`Requesting GitHub OIDC token for audience: ${audience}`);
     idToken = await core.getIDToken(audience);
 
@@ -35885,6 +35883,7 @@ async function authenticate(
         }
 
         core.exportVariable("CLOUDSMITH_API_KEY", token);
+        core.setOutput('oidc-token', token);
         core.info(
           "Authenticated successfully with OIDC and saved JWT (token) to `CLOUDSMITH_API_KEY` environment variable.",
         );
