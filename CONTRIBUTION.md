@@ -1,4 +1,6 @@
 Thank you for considering contributing to the Cloudsmith CLI Install Action! Here are the steps to create a Pull Request (PR) and the necessary variables and secrets for GitHub Actions.
+\
+> Note: This repository uses a Husky pre-commit hook to automatically build and stage the bundled action code in `dist/index.js`. You should not manually edit files under `dist/`.
 ## How to Create PRs (Fork)
 ### Fork the Repository:
 - Navigate to the Cloudsmith CLI Install Action repository.
@@ -28,6 +30,22 @@ git checkout -b <branch-name>
 git commit -m "Your commit message"
 ```
 
+The pre-commit hook will:
+
+- Ensure dependencies are installed (if `node_modules` is missing)
+- Run `npm run build` (which bundles the action via `@vercel/ncc` into `dist/index.js`)
+- Stage `dist/index.js` if it changed
+
+If the build fails, the commit is aborted. Fix issues (lint, syntax, missing deps) and commit again.
+
+To skip the hook (rarely needed, e.g. emergency hotfix where build already validated), you can use:
+
+```
+git commit -m "Your commit message" --no-verify
+```
+
+Please avoid skipping unless absolutely necessary—having `dist/` in-sync with source ensures tagged releases run reliably.
+
 ### Push Your Changes:
 - Push your changes to your forked repository:
 
@@ -55,6 +73,8 @@ npm install
 ```
 npm run build
 ```
+
+You normally do not need to run `npm run build` manually before committing; the pre-commit hook will handle it. Running it locally first can still help surface errors earlier.
 
 - Commit your changes to GitHub.
 - Configure the variables below and trigger the test action.
