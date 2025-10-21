@@ -43,7 +43,7 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME}"
           MAJOR=$(echo "$TAG" | cut -d. -f1)
-          echo "Updating $MAJOR to point at $TAG (commit $GITHUB_SHA)".
+          echo "Updating $MAJOR to point at $TAG (commit $GITHUB_SHA)"
           # Create/force-update annotated tag for auditability
           git tag -fa "$MAJOR" -m "Point $MAJOR to $TAG"
           git push origin "$MAJOR" --force
