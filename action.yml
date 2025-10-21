@@ -30,6 +30,10 @@ inputs:
     description: 'Validate the OIDC token after authentication'
     default: 'true'
     required: false
+  oidc-audience:
+    description: 'Audience to request when retrieving the GitHub OIDC token (defaults to api://AzureADTokenExchange). Set to https://github.com/<org-name> for the standard GitHub audience.'
+    default: 'api://AzureADTokenExchange'
+    required: false
   pip-install:
     description: 'Install the Cloudsmith CLI via pip'
     default: 'false'
