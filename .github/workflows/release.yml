@@ -13,22 +13,11 @@ jobs:
   release:
     name: Create release and move major tag
     runs-on: ubuntu-latest
-    concurrency: release-major
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Validate tag format
-        id: validate
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid tag format: $TAG. Expected vMAJOR.MINOR.PATCH" >&2
-            exit 1
-          fi
-
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
