@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Ensure dependencies are installed (skip if CI environment variable present)
+if [ -f package.json ] && [ ! -d node_modules ]; then
+  echo "[husky] Installing dependencies..."
+  npm install --no-audit --no-fund --no-progress
+fi
+
+# Build the bundled action
+echo "[husky] Building dist/index.js"
+npm run build || { echo "[husky] Build failed"; exit 1; }
+
+# Stage dist only if changed
+if ! git diff --quiet -- dist/index.js; then
+  echo "[husky] Staging updated dist/index.js"
+  git add dist/index.js
+else
+  echo "[husky] dist/index.js unchanged"
+fi
