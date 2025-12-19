@@ -45713,7 +45713,6 @@ async function run() {
     );
     const oidcTokenValidate = core.getBooleanInput("oidc-token-validate");
   const oidcAudienceInput = core.getInput("oidc-audience");
-  // Default to https://github.com/{org-name} format for better security
   const oidcAudience = oidcAudienceInput || `https://github.com/${process.env.GITHUB_REPOSITORY_OWNER || ''}`;
 
     // Cloudsmith CLI optional inputs
