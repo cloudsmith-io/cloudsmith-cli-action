@@ -35920,7 +35920,7 @@ async function validateApiToken(token, baseUrl) {
   const response = await axios.get(`${baseUrl}/v1/user/self/`, {
     headers: {
       accept: "application/json",
-      "X-Api-Key": token,
+      Authorization: `Bearer ${token}`,
     },
     timeout: REQUEST_TIMEOUT_MS,
   });
