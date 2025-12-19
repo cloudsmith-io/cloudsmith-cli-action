@@ -8,7 +8,9 @@
 
 This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OIDC or API Key. 🚀
 
-> **⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
+**⚠️ Notice:** The `@v2` of the cloudsmith cli action now runs on Node24 as a minimum requirement. If you still rely on Node20, please use `@v1` and plan for future migration.
+
+**⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
 
 ## Inputs
 
