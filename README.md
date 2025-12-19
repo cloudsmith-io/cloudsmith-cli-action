@@ -2,7 +2,7 @@
 
 [![Test Status](https://github.com/cloudsmith-io/cloudsmith-cli-action/actions/workflows/test_install.yml/badge.svg)](https://github.com/cloudsmith-io/cloudsmith-cli-action/actions/workflows/test_install.yml)
 [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Cloudsmith%20CLI%20Install-blue.svg?colorA=24292e&colorB=0366d6&style=flat&longCache=true&logo=github)](https://github.com/marketplace/actions/cloudsmith-cli-install-action)
-[![Node.js Version](https://img.shields.io/badge/node-20-brightgreen.svg)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-24-brightgreen.svg)](https://nodejs.org/)
 [![License](https://img.shields.io/github/license/cloudsmith-io/cloudsmith-cli-action.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/cloudsmith-io/cloudsmith-cli-action.svg)](https://github.com/cloudsmith-io/cloudsmith-cli-action/releases)
 
@@ -42,7 +42,7 @@ See [CLI configuration documentation](https://github.com/cloudsmith-io/cloudsmit
 Cloudsmith OIDC [documentation](https://docs.cloudsmith.com/authentication/openid-connect)
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1
+uses: cloudsmith-io/cloudsmith-cli-action@v2
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -53,7 +53,7 @@ with:
 Personal API Key can be found [here](https://cloudsmith.io/user/settings/api/). For CI-CD deployments we recommend using [Service Accounts](https://docs.cloudsmith.com/accounts-and-teams/service-accounts).
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1
+uses: cloudsmith-io/cloudsmith-cli-action@v2
 with:
   api-key: 'your-api-key'
 ```
@@ -63,7 +63,7 @@ with:
 If you only need to authenticate with Cloudsmith's API without installing the CLI:
 
 ```yaml
-uses: cloudsmith-io/cloudsmith-cli-action@v1
+uses: cloudsmith-io/cloudsmith-cli-action@v2
 with:
   oidc-namespace: 'your-oidc-namespace'
   oidc-service-slug: 'your-service-account-slug'
@@ -103,7 +103,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Cloudsmith CLI
-        uses: cloudsmith-io/cloudsmith-cli-action@v1
+        uses: cloudsmith-io/cloudsmith-cli-action@v2
         with:
           oidc-namespace: 'your-oidc-namespace'
           oidc-service-slug: 'your-service-account-slug'
