@@ -135,7 +135,7 @@ async function authenticate(
   apiHost,
   retryAttempts = 3,
   validateToken = true,
-  oidcAudience = 'api://AzureADTokenExchange',
+  oidcAudience = '',
 ) {
   const baseUrl = `https://${apiHost || DEFAULT_API_HOST}`;
   let idToken;
