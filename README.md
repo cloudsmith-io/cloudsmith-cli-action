@@ -8,9 +8,14 @@
 
 This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OIDC or API Key. 🚀
 
-**⚠️ Notice:** The `@v2` of the cloudsmith cli action now runs on Node24 as a minimum requirement. If you still rely on Node20, please use `@v1` and plan for future migration.
+## ⚠️ Important Notices for v2
 
-**⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
+**Breaking Changes:**
+- **Node.js 24 Required:** `@v2` requires Node.js 24 as a minimum. If you still rely on Node.js 20, please use `@v1` and plan for future migration.
+- **OIDC Audience Default Changed:** The default OIDC audience has changed from `api://AzureADTokenExchange` to `https://github.com/{org-name}` (using `GITHUB_REPOSITORY_OWNER`) for improved security. If you're using OIDC with audience claim validation, you may need to update your configuration or explicitly set `oidc-audience: 'api://AzureADTokenExchange'` to maintain the previous behavior.
+
+> **⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
+
 
 ## Inputs
 
@@ -24,7 +29,7 @@ This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OI
 | `oidc-service-slug` | Cloudsmith service account slug for OIDC | No | - |
 | `oidc-auth-only` | Only perform OIDC authentication without installing the CLI | No | `false` |
 | `oidc-auth-retry` | Number of retry attempts for OIDC authentication (0-10), 5 seconds delay between retries | No | `3` |
-| `oidc-audience` | Audience to request when retrieving the GitHub OIDC token. Use `https://github.com/<org-name>` for standard GitHub audience | No | `api://AzureADTokenExchange` |
+| `oidc-audience` | Audience to request when retrieving the GitHub OIDC token. Defaults to `https://github.com/{org-name}` using GITHUB_REPOSITORY_OWNER. You can override with a custom value like `api://AzureADTokenExchange` if needed. | No | `https://github.com/{org-name}` (dynamic) |
 | `pip-install` | Install the Cloudsmith CLI via pip | No | - |
 | `executable-path` | Path to the Cloudsmith CLI executable | No | `GITHUB_WORKSPACE/bin/` |
 

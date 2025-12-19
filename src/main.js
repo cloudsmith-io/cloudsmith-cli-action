@@ -14,7 +14,8 @@ async function run() {
       10,
     );
     const oidcTokenValidate = core.getBooleanInput("oidc-token-validate");
-  const oidcAudience = core.getInput("oidc-audience");
+  const oidcAudienceInput = core.getInput("oidc-audience");
+  const oidcAudience = oidcAudienceInput || `https://github.com/${process.env.GITHUB_REPOSITORY_OWNER || ''}`;
 
     // Cloudsmith CLI optional inputs
     const apiHost = core.getInput("api-host");
