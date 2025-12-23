@@ -1,4 +1,3 @@
-const axios = require("axios");
 const core = require("@actions/core");
 
 const DEFAULT_API_HOST = "api.cloudsmith.io";
@@ -43,15 +42,20 @@ function logHttpError(error, context = "") {
     core.error(`HTTP Status Code: ${error.response.status}`);
     core.error(`HTTP Status Text: ${error.response.statusText}`);
     core.error("Response Headers:");
-    core.error(JSON.stringify(error.response.headers, null, 2));
+    const headers = {};
+    if (error.response.headers && typeof error.response.headers.forEach === 'function') {
+      error.response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+    }
+    core.error(JSON.stringify(headers, null, 2));
     core.error("Response Body:");
     core.error(JSON.stringify(error.response.data, null, 2));
   } else if (error.request) {
     core.error("No response received from server");
     core.error("Request details:");
     core.error(`  Method: ${error.request.method || "POST"}`);
-    core.error(`  Path: ${error.request.path}`);
-    core.error(`  Host: ${error.request.host}`);
+    core.error(`  URL: ${error.request.url}`);
   }
 
   if (error.stack) {
@@ -121,6 +125,61 @@ async function retryWithDelay(fn, retries, operationType, idToken = null) {
 }
 
 /**
+ * Makes an HTTP request using native fetch with timeout support.
+ *
+ * @param {string} url - The URL to request.
+ * @param {object} options - Fetch options (method, headers, body, etc.).
+ * @param {number} timeout - Timeout in milliseconds.
+ * @returns {Promise<{status: number, statusText: string, data: any, headers: Headers}>}
+ */
+async function fetchWithTimeout(url, options = {}, timeout = REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
+
+    if (!response.ok) {
+      const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+      error.response = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        data,
+      };
+      throw error;
+    }
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      data,
+      headers: response.headers,
+    };
+  } catch (error) {
+    if (error.name === "AbortError") {
+      const timeoutError = new Error(`Request timeout after ${timeout}ms`);
+      timeoutError.code = "ETIMEDOUT";
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
  * Authenticates with Cloudsmith using OIDC and validates the token.
  *
  * @param {string} orgName - The organization name.
@@ -128,6 +187,7 @@ async function retryWithDelay(fn, retries, operationType, idToken = null) {
  * @param {string} apiHost - The API host to connect to (optional).
  * @param {number} retryAttempts - Number of retry attempts for authentication (0-10).
  * @param {boolean} validateToken - Whether to validate the token after authentication (default: true).
+ * @param {string} oidcAudience - The audience to request when retrieving the GitHub OIDC token.
  */
 async function authenticate(
   orgName,
@@ -154,18 +214,19 @@ async function authenticate(
     // Authenticate with Cloudsmith using OIDC token
     await retryWithDelay(
       async () => {
-        const response = await axios.post(
+        const response = await fetchWithTimeout(
           `${baseUrl}/openid/${orgName}/`,
           {
-            oidc_token: idToken,
-            service_slug: serviceAccountSlug,
-          },
-          {
+            method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            timeout: REQUEST_TIMEOUT_MS,
+            body: JSON.stringify({
+              oidc_token: idToken,
+              service_slug: serviceAccountSlug,
+            }),
           },
+          REQUEST_TIMEOUT_MS,
         );
 
         if (response.status !== 200 && response.status !== 201) {
@@ -217,13 +278,17 @@ async function authenticate(
  * @param {string} baseUrl - The base URL for the API.
  */
 async function validateApiToken(token, baseUrl) {
-  const response = await axios.get(`${baseUrl}/v1/user/self/`, {
-    headers: {
-      accept: "application/json",
-      Authorization: `Bearer ${token}`,
+  const response = await fetchWithTimeout(
+    `${baseUrl}/v1/user/self/`,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
     },
-    timeout: REQUEST_TIMEOUT_MS,
-  });
+    REQUEST_TIMEOUT_MS,
+  );
 
   const data = response.data;
   core.info(`User has successfully authenticated as ${data.name}.`);

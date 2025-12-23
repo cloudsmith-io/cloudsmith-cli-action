@@ -2,7 +2,8 @@ const core = require('@actions/core');
 const exec = require('@actions/exec');
 const fs = require('fs');
 const path = require('path');
-const fetch = require('node-fetch').default;
+const { pipeline } = require('stream/promises');
+const { Readable } = require('stream');
 const os = require('os');
 
 // Get inputs from GitHub Actions workflow
@@ -25,11 +26,7 @@ async function downloadFile(url, dest) {
     throw new Error(`Failed to fetch ${url}: ${res.statusText}`);
   }
   const fileStream = fs.createWriteStream(dest);
-  await new Promise((resolve, reject) => {
-    res.body.pipe(fileStream);
-    res.body.on('error', reject);
-    fileStream.on('finish', resolve);
-  });
+  await pipeline(Readable.fromWeb(res.body), fileStream);
   fs.chmodSync(dest, '755');
 }
 

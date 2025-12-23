@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated test workflows to run on Node 24
 - Updated documentation to v2
 - OIDC Audience defaults to `https://github.com/{org-name}` from `api://AzureADTokenExchange`
+- Replaced `axios` with native `fetch` API to fix Node.js 24 `url.parse()` deprecation warning (DEP0169) and reduce bundle size
 
 ## [1.0.0] - 2024
 ---
