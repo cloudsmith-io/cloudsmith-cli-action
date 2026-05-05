@@ -1,5 +1,5 @@
 name: Cloudsmith CLI Setup
-description: Set up Cloudsmith CLI in GitHub Actions
+description: '[DEPRECATED — migrate to @v2] Set up Cloudsmith CLI in GitHub Actions'
 author: BartoszBlizniak
 inputs:
   cli-version:

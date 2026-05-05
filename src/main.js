@@ -5,6 +5,12 @@ const { createConfigFile } = require("./create-config-file");
 
 async function run() {
   try {
+    core.warning(
+      "cloudsmith-cli-action @v1 is DEPRECATED. v1 runs on Node.js 20, which reached end-of-life on 2026-04-30 (https://nodejs.org/en/about/previous-releases). " +
+        "Please migrate to @v2, which runs on Node.js 24. Security-only patches for v1 will continue until 2026-12-31. " +
+        "Migration guide: https://github.com/cloudsmith-io/cloudsmith-cli-action/tree/v2#readme",
+    );
+
     // Get inputs from GitHub Actions workflow
     const orgName = core.getInput("oidc-namespace");
     const serviceAccountSlug = core.getInput("oidc-service-slug");

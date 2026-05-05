@@ -8,6 +8,14 @@
 
 This GitHub Action installs the Cloudsmith CLI and pre-authenticates it using OIDC or API Key. 🚀
 
+> **🛑 `@v1` is DEPRECATED — please migrate to `@v2`.**
+>
+> `@v1` runs on Node.js 20, which reached [end-of-life on 2026-04-30](https://nodejs.org/en/about/previous-releases). Please migrate to [`@v2`](https://github.com/cloudsmith-io/cloudsmith-cli-action/tree/v2#readme), which runs on Node.js 24.
+>
+> - **Migration guide:** see the [v2 README](https://github.com/cloudsmith-io/cloudsmith-cli-action/tree/v2#readme) for breaking changes (Node.js 24 runtime, OIDC audience default).
+> - **Security-only patches** for `@v1` will continue until **2026-12-31**, after which `@v1` reaches end-of-life. No new features or non-security fixes will land on `@v1` in the meantime.
+> - To migrate, change `cloudsmith-io/cloudsmith-cli-action@v1` → `cloudsmith-io/cloudsmith-cli-action@v2` in your workflows.
+
 > **⚠️ Notice:** If you are running on self-hosted runners, Python version 3.9 or higher is required. Please ensure your runner meets this requirement to avoid any issues. We recommend using [setup-python](https://github.com/actions/setup-python) action for installing Python. 🐍
 
 ## Inputs
