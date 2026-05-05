@@ -1,5 +1,5 @@
 name: Cloudsmith CLI Setup
-description: '[DEPRECATED — please migrate to @v2 (Node.js 24). v1 runs on Node.js 20 (EoL 2026-04-30); security-only patches until 2026-12-31.] Set up Cloudsmith CLI in GitHub Actions'
+description: Set up Cloudsmith CLI in GitHub Actions
 author: BartoszBlizniak
 inputs:
   cli-version:
