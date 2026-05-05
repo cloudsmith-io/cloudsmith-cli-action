@@ -1,6 +1,6 @@
 {
   "name": "cloudsmith-github-action",
-  "version": "1.0.3",
+  "version": "1.0.11",
   "description": "A GitHub Action to install Cloudsmith CLI and authenticate using OIDC",
   "main": "dist/index.js",
   "scripts": {
