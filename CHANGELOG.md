@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ---
+### Security
+
+- Mask the OIDC-issued Cloudsmith API token as a secret so it is replaced with `***` in any subsequent workflow log line. The token was previously exported via `core.exportVariable("CLOUDSMITH_API_KEY", token)` and `core.setOutput('oidc-token', token)` without first calling `core.setSecret(token)`, so a downstream step that printed `$CLOUDSMITH_API_KEY` (e.g. via `set -x` or accidental `echo`) would leak the bearer token in clear text.
+
 ### Fixed
 
 - `pip-install: 'true'` now correctly installs `cloudsmith-cli` from the Cloudsmith package index. The previous implementation passed `--index-url=...` as the third positional argument to `@actions/exec`'s `exec()`, which is the **options** object — not extra CLI args — so the flag was silently dropped and pip resolved `cloudsmith-cli` from the default index (PyPI) instead.
