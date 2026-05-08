@@ -26595,7 +26595,7 @@ async function authenticate(
 
         // Register the token as a secret BEFORE exposing it via env var or
         // step output, so any subsequent log line containing the literal
-        // token bytes is masked as `***`. Must precede `exportVariable` and
+        // token value is masked as `***`. Must precede `exportVariable` and
         // `setOutput` so no intermediate log can leak the value.
         core.setSecret(token);
 

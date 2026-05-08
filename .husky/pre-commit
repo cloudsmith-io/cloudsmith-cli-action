@@ -1,5 +1,4 @@
 #!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
 
 # Ensure dependencies are installed (skip if CI environment variable present)
 if [ -f package.json ] && [ ! -d node_modules ]; then
