@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `pip-install: 'true'`: the Cloudsmith Python index URL is now actually forwarded to `pip install`. Previously, `--index-url=...` was passed as the third positional argument to `@actions/exec`'s `exec()` (which is the **options** object, not extra CLI args), so the flag was silently dropped and `cloudsmith-cli` was resolved from PyPI alone. The flag is now passed inside the args array as `--extra-index-url=...`, so pip uses the Cloudsmith index for the `cloudsmith-cli` package while still resolving transitive dependencies (`click`, `click-configfile`, etc.) from PyPI.
+- `pip-install: 'true'`: the Cloudsmith Python index URL is now actually forwarded to `pip install`. Previously, `--index-url=...` was passed as the third positional argument to `@actions/exec`'s `exec()` (which is the **options** object, not extra CLI args), so the flag was silently dropped and `cloudsmith-cli` was resolved from PyPI alone. The flag is now passed inside the args array as `--extra-index-url=...`, so pip searches both PyPI and the Cloudsmith index when resolving `cloudsmith-cli` and its transitive dependencies (`click`, `click-configfile`, etc.).
 
 ## [2.0.1] - 2025-12-23
 ---
