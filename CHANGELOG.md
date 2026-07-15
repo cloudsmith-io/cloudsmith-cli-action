@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ---
+### Breaking Changes
+
+- **Composite action** - The action is now a composite action that installs the standalone Cloudsmith CLI binary via bundled installer scripts. No Python or Node.js runtime is required.
+- **CLI-native OIDC** - The CLI performs the OIDC token exchange on its first authenticated command; the action only exports `CLOUDSMITH_ORG`, `CLOUDSMITH_SERVICE_SLUG`, and `CLOUDSMITH_OIDC_AUDIENCE`. The default audience remains `https://github.com/{repository-owner}`.
+- **Removed inputs** - `pip-install`, `oidc-auth-only`, `oidc-auth-retry`, `oidc-token-validate`, and `executable-path`. See the README migration table.
+- **Removed output** - `oidc-token`. The action never holds a Cloudsmith token.
+- **No config file** - `api-host`, `api-proxy`, `api-ssl-verify`, and `api-user-agent` are exported as `CLOUDSMITH_*` environment variables instead of being written to a config file.
+
+### Added
+
+- `install-directory` input to control where versioned CLI installations live.
+- `verify-auth` input to run `cloudsmith whoami` after setup.
+- `cli-version`, `target`, `cli-path`, and `bin-directory` outputs.
+- Linux ARM64 (glibc and musl) and macOS ARM64 support via the standalone binaries.
 
 ## [2.0.3] - 2026-05-08
 ---
