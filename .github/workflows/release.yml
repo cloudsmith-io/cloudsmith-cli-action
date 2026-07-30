@@ -1,42 +1,43 @@
 name: Release
 
-permissions:
-  contents: write
-
 on:
   push:
     tags:
-      - 'v*.*.*'
-  workflow_dispatch:
+      - "v*.*.*"
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Create release and move major tag
+    permissions:
+      contents: write # create the release and move the major tag
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
-          fetch-depth: 0
-      - name: Create GitHub Release
-        uses: actions/create-release@v1
+          persist-credentials: false
+
+      - name: Create GitHub release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --title "Release $TAG" --verify-tag
 
       - name: Update floating major tag
-        run: |
-          TAG="${GITHUB_REF_NAME}"
-          MAJOR=$(echo "$TAG" | cut -d. -f1)
-          echo "Updating $MAJOR to point at $TAG (commit $GITHUB_SHA)"
-          # Create/force-update annotated tag for auditability
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git tag -fa "$MAJOR" -m "Point $MAJOR to $TAG"
-          git push origin "$MAJOR" --force
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          major="${TAG%%.*}"
+          echo "Pointing $major at $TAG ($GITHUB_SHA)"
+          gh api --method PATCH "repos/$GITHUB_REPOSITORY/git/refs/tags/$major" \
+            -f "sha=$GITHUB_SHA" -F "force=true" \
+            || gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f "ref=refs/tags/$major" -f "sha=$GITHUB_SHA"

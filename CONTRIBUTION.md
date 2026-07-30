@@ -1,120 +1,46 @@
-Thank you for considering contributing to the Cloudsmith CLI Install Action! Here are the steps to create a Pull Request (PR) and the necessary variables and secrets for GitHub Actions.
-\
-> Note: This repository uses a Husky pre-commit hook to automatically build and stage the bundled action code in `dist/index.js`. You should not manually edit files under `dist/`.
-## How to Create PRs (Fork)
-### Fork the Repository:
-- Navigate to the Cloudsmith CLI Install Action repository.
-- Click the "Fork" button at the top right of the page.
+# Contributing
 
-### Clone Your Fork:
-- Open your terminal and clone your forked repository:
+Thank you for considering contributing to the Cloudsmith CLI Setup action!
 
-```
-git clone <your-forked-repo-url>
-```
+## Repository Layout
 
-### Create a New Branch:
-- Create a new branch for your feature or bug fix:
+- `action.yml` — composite action definition.
+- `scripts/setup.sh` / `scripts/setup.ps1` — wrapper scripts run by the action.
+- `installer/install.sh` / `installer/install.ps1` — vendored copies of the
+  Cloudsmith CLI installer. Do not edit these by hand; they are updated by
+  re-vendoring a new installer release together with `installer/VERSION` and
+  `installer/SHA256SUMS`. CI fails if the checksums do not match.
 
-```
-git checkout -b <branch-name>
-```
+## Creating a Pull Request
 
-### Make Your Changes:
-- Make the necessary changes in your local repository.
+1. Fork the repository and clone your fork.
+2. Create a branch: `git checkout -b <branch-name>`.
+3. Make your changes and validate them locally:
 
-### Commit Your Changes:
-- Commit your changes with a descriptive message:
+   ```sh
+   bash -n scripts/setup.sh
+   shellcheck --severity=style scripts/setup.sh
+   pwsh -Command "Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings PSGallery -EnableExit"
+   ```
 
-```
-git commit -m "Your commit message"
-```
-
-The pre-commit hook will:
-
-- Ensure dependencies are installed (if `node_modules` is missing)
-- Run `npm run build` (which bundles the action via `@vercel/ncc` into `dist/index.js`)
-- Stage `dist/index.js` if it changed
-
-If the build fails, the commit is aborted. Fix issues (lint, syntax, missing deps) and commit again.
-
-To skip the hook (rarely needed, e.g. emergency hotfix where build already validated), you can use:
-
-```
-git commit -m "Your commit message" --no-verify
-```
-
-Please avoid skipping unless absolutely necessary—having `dist/` in-sync with source ensures tagged releases run reliably.
-
-### Push Your Changes:
-- Push your changes to your forked repository:
-
-```
-git push origin <branch-name>
-```
-
-### Create a Pull Request:
-- Navigate to your forked repository on GitHub.
-- Click the "Compare & pull request" button.
-- Provide a descriptive title and detailed description of your changes.
-- Click "Create pull request".
-
-## Running Locally
-To run this project locally, you need to have Node.js and npm installed. Follow these steps:
-
-- Install the dependencies:
-
-```
-npm install
-```
-
-- Build the project:
-
-```
-npm run build
-```
-
-You normally do not need to run `npm run build` manually before committing; the pre-commit hook will handle it. Running it locally first can still help surface errors earlier.
-
-- Commit your changes to GitHub.
-- Configure the variables below and trigger the test action.
+4. Commit, push to your fork, and open a pull request.
 
 ## Variables and Secrets for GitHub Actions
-To run the GitHub Actions workflows, you need to set up the following variables and secrets in your repository:
 
-### Variables:
-- NAMESPACE: Your Cloudsmith OIDC namespace.
-- SERVICE_ACCOUNT: Your Cloudsmith OIDC service account slug.
+The install and validation test jobs run without any configuration. To run the
+authentication test jobs in your fork, configure the following under
+"Settings" > "Secrets and variables" > "Actions":
 
-### Secrets:
-- CLOUDSMITH_API_KEY: Your Cloudsmith API key.
+Variables:
 
-To add these variables and secrets:
+- `CLOUDSMITH_NAMESPACE`: your Cloudsmith OIDC namespace.
+- `CLOUDSMITH_SERVICE_SLUG`: your Cloudsmith OIDC service account slug.
 
-1. Navigate to Your Repository Settings:
-    - Go to your repository on GitHub.
-    - Click on "Settings".
+Secrets:
 
-2. Add Variables:
-    - Go to "Secrets and variables" > "Actions" > "Variables".
-    - Click "New repository variable" and add NAMESPACE and SERVICE_ACCOUNT.
+- `CLOUDSMITH_API_KEY`: your Cloudsmith API key.
 
-3. Add Secrets:
-    - Go to "Secrets and variables" > "Actions" > "Secrets".
-    - Click "New repository secret" and add CLOUDSMITH_API_KEY.
+Jobs that need missing variables or secrets are skipped automatically.
 
-## Example Commands/Code to Change
-Here is an example of how you might modify the [`test_install.yml`](".github/workflows/test_install.yml") workflow to use a different CLI version and authentication method:
-
-```yaml
-- name: Install Cloudsmith CLI
-  uses: cloudsmith-io/cloudsmith-cli-action@v1
-  with:
-     cli-version: 1.3.0
-     auth-method: token
-     token: ${{ secrets.CLOUDSMITH_API_KEY }}
-```
-
-You can modify other inputs similarly based on your requirements.
-
-Thank you for contributing! If you have any questions, feel free to open an issue or reach out to the maintainers.
+Thank you for contributing! If you have any questions, feel free to open an
+issue or reach out to the maintainers.

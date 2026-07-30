@@ -1,0 +1,306 @@
+name: Test
+
+on:
+  push:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-shell:
+    name: Lint shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Syntax check
+        run: |
+          bash -n scripts/setup.sh
+          sh -n installer/install.sh
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: ShellCheck
+        run: |
+          shellcheck --severity=style scripts/setup.sh
+          shellcheck --shell=sh --severity=style installer/install.sh
+
+  lint-powershell:
+    name: Lint PowerShell
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Scope CurrentUser -Force -SkipPublisherCheck
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings PSGallery -EnableExit
+          Invoke-ScriptAnalyzer -Path installer/install.ps1 -Settings PSGallery -EnableExit
+
+      - name: AST parse check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          foreach ($file in @("scripts/setup.ps1", "installer/install.ps1")) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
+            if ($errors.Count -gt 0) {
+              foreach ($e in $errors) {
+                Write-Error "${file}: $e"
+              }
+              throw "AST parse errors found"
+            }
+            Write-Output "OK: $file"
+          }
+
+  installer-drift:
+    name: Vendored installer drift check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Verify vendored installer checksums
+        working-directory: installer
+        run: |
+          test -s VERSION
+          sha256sum -c SHA256SUMS
+
+  test-install:
+    name: Install (${{ matrix.os }})
+    permissions:
+      contents: read
+      id-token: write # required whenever OIDC inputs are set
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      # OIDC inputs only configure environment variables; no token exchange
+      # happens until an authenticated CLI command runs, so placeholder
+      # values are enough to test the install path without secrets.
+      - name: Install Cloudsmith CLI
+        id: setup
+        uses: ./
+        with:
+          oidc-namespace: placeholder-namespace
+          oidc-service-slug: placeholder-service
+
+      - name: Check installation
+        shell: bash
+        env:
+          OUTPUT_CLI_VERSION: ${{ steps.setup.outputs.cli-version }}
+          OUTPUT_TARGET: ${{ steps.setup.outputs.target }}
+          OUTPUT_CLI_PATH: ${{ steps.setup.outputs.cli-path }}
+          OUTPUT_BIN_DIRECTORY: ${{ steps.setup.outputs.bin-directory }}
+        run: |
+          set -euo pipefail
+          command -v cloudsmith
+          cloudsmith --version
+          test -n "$OUTPUT_CLI_VERSION"
+          test -n "$OUTPUT_TARGET"
+          test -n "$OUTPUT_CLI_PATH"
+          test -n "$OUTPUT_BIN_DIRECTORY"
+          cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: $OUTPUT_CLI_VERSION"
+
+      - name: Check exported environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CLOUDSMITH_ORG" = "placeholder-namespace"
+          test "$CLOUDSMITH_SERVICE_SLUG" = "placeholder-service"
+          test "$CLOUDSMITH_OIDC_AUDIENCE" = "https://github.com/$GITHUB_REPOSITORY_OWNER"
+
+  test-pinned-version:
+    name: Install pinned version
+    permissions:
+      contents: read
+      id-token: write # required whenever OIDC inputs are set
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install Cloudsmith CLI
+        id: setup
+        uses: ./
+        with:
+          # Latest version published to the pre-release test repository.
+          # Bump to the first production release when the vendored installer
+          # is updated to point at the production repository.
+          cli-version: "1.20.1"
+          install-directory: ${{ github.workspace }}/.cloudsmith-cli
+          oidc-namespace: placeholder-namespace
+          oidc-service-slug: placeholder-service
+          oidc-audience: test-audience
+
+      - name: Check installation
+        shell: bash
+        env:
+          OUTPUT_CLI_VERSION: ${{ steps.setup.outputs.cli-version }}
+          OUTPUT_CLI_PATH: ${{ steps.setup.outputs.cli-path }}
+        run: |
+          set -euo pipefail
+          test "$OUTPUT_CLI_VERSION" = "1.20.1"
+          case "$OUTPUT_CLI_PATH" in
+            "$GITHUB_WORKSPACE/.cloudsmith-cli/"*) ;;
+            *) echo "unexpected cli-path: $OUTPUT_CLI_PATH"; exit 1 ;;
+          esac
+          test "$CLOUDSMITH_OIDC_AUDIENCE" = "test-audience"
+          cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: 1.20.1"
+
+  test-input-validation:
+    name: Input validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: No authentication inputs should fail
+        id: no-auth
+        continue-on-error: true
+        uses: ./
+
+      - name: Incomplete OIDC pair should fail
+        id: partial-oidc
+        continue-on-error: true
+        uses: ./
+        with:
+          oidc-namespace: placeholder-namespace
+
+      - name: verify-auth with a bad API key should fail
+        id: bad-key
+        continue-on-error: true
+        uses: ./
+        with:
+          api-key: placeholder-invalid-key
+          verify-auth: "true"
+
+      - name: Check outcomes
+        env:
+          NO_AUTH_OUTCOME: ${{ steps.no-auth.outcome }}
+          PARTIAL_OIDC_OUTCOME: ${{ steps.partial-oidc.outcome }}
+          BAD_KEY_OUTCOME: ${{ steps.bad-key.outcome }}
+        run: |
+          set -euo pipefail
+          test "$NO_AUTH_OUTCOME" = "failure"
+          test "$PARTIAL_OIDC_OUTCOME" = "failure"
+          test "$BAD_KEY_OUTCOME" = "failure"
+
+  auth-gate:
+    name: Check auth test configuration
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      has-api-key: ${{ steps.check.outputs.has-api-key }}
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+        run: |
+          if [ -n "$API_KEY" ]; then
+            echo "has-api-key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-api-key=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  test-auth-api-key:
+    name: API key auth (${{ matrix.os }})
+    needs: auth-gate
+    if: needs.auth-gate.outputs.has-api-key == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install and authenticate
+        uses: ./
+        with:
+          api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          verify-auth: "true"
+
+      - name: whoami from PATH
+        shell: bash
+        run: cloudsmith whoami
+
+  test-auth-oidc:
+    name: OIDC auth (${{ matrix.os }})
+    if: vars.CLOUDSMITH_NAMESPACE != '' && vars.CLOUDSMITH_SERVICE_SLUG != ''
+    permissions:
+      contents: read
+      id-token: write # the CLI exchanges the ID token for a Cloudsmith token
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install and authenticate
+        uses: ./
+        with:
+          oidc-namespace: ${{ vars.CLOUDSMITH_NAMESPACE }}
+          oidc-service-slug: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+          verify-auth: "true"
+
+      - name: whoami from PATH
+        shell: bash
+        run: cloudsmith whoami
