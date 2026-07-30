@@ -164,7 +164,7 @@ jobs:
           # Latest version published to the pre-release test repository.
           # Bump to the first production release when the vendored installer
           # is updated to point at the production repository.
-          cli-version: "1.19.4"
+          cli-version: "1.20.1"
           install-directory: ${{ github.workspace }}/.cloudsmith-cli
           oidc-namespace: placeholder-namespace
           oidc-service-slug: placeholder-service
@@ -177,13 +177,13 @@ jobs:
           OUTPUT_CLI_PATH: ${{ steps.setup.outputs.cli-path }}
         run: |
           set -euo pipefail
-          test "$OUTPUT_CLI_VERSION" = "1.19.4"
+          test "$OUTPUT_CLI_VERSION" = "1.20.1"
           case "$OUTPUT_CLI_PATH" in
             "$GITHUB_WORKSPACE/.cloudsmith-cli/"*) ;;
             *) echo "unexpected cli-path: $OUTPUT_CLI_PATH"; exit 1 ;;
           esac
           test "$CLOUDSMITH_OIDC_AUDIENCE" = "test-audience"
-          cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: 1.19.4"
+          cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: 1.20.1"
 
   test-input-validation:
     name: Input validation

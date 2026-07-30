@@ -6,12 +6,12 @@
 set -eu
 
 PROGRAM="install.sh"
+INSTALLER_USER_AGENT="cloudsmith-cli-install-script ($(uname -s 2>/dev/null || echo unknown); $(uname -m 2>/dev/null || echo unknown))"
 
 # Where releases are downloaded from. Flags and CLOUDSMITH_CLI_* environment
 # variables override the defaults; --manifest-url bypasses URL construction.
 DOWNLOAD_BASE_URL="https://dl.cloudsmith.io/public"
-# TODO: revert to the production repository before release.
-DEFAULT_REPOSITORY="bart-demo-org-terraform/cli-binary-release-test"
+DEFAULT_REPOSITORY="cloudsmith/cli"
 MANIFEST_NAME_PREFIX="cloudsmith-cli-manifest"
 
 REPOSITORY="${CLOUDSMITH_CLI_REPOSITORY:-$DEFAULT_REPOSITORY}"
@@ -87,6 +87,11 @@ cleanup() {
   [ -z "$WORK_DIR" ] || rm -rf "$WORK_DIR"
 }
 
+enable_signal_traps() {
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+}
+
 require_https() {
   # Args: <url> <label>
   case "$1" in https://*) return 0 ;; esac
@@ -98,19 +103,21 @@ http_download() {
   if command -v curl >/dev/null 2>&1; then
     if [ "$ALLOW_INSECURE_URLS" = true ]; then
       curl --fail --silent --show-error --location \
+        --user-agent "$INSTALLER_USER_AGENT" \
         --retry 3 --retry-delay 1 --connect-timeout 20 --max-time 300 \
         --output "$output" "$url"
     else
       curl --fail --silent --show-error --location \
         --proto '=https' --proto-redir '=https' \
+        --user-agent "$INSTALLER_USER_AGENT" \
         --retry 3 --retry-delay 1 --connect-timeout 20 --max-time 300 \
         --output "$output" "$url"
     fi
   elif command -v wget >/dev/null 2>&1; then
     if [ "$ALLOW_INSECURE_URLS" = true ]; then
-      wget -q -T 300 -O "$output" "$url"
+      wget -q -T 300 -U "$INSTALLER_USER_AGENT" -O "$output" "$url"
     elif wget --help 2>&1 | grep -- '--https-only' >/dev/null 2>&1; then
-      wget -q -T 300 --https-only -O "$output" "$url"
+      wget -q -T 300 --https-only -U "$INSTALLER_USER_AGENT" -O "$output" "$url"
     else
       die "secure downloads require curl or GNU wget with --https-only"
     fi
@@ -128,6 +135,25 @@ sha256_file() {
   elif command -v openssl >/dev/null 2>&1; then
     openssl dgst -sha256 "$file" | awk '{print $NF}'
   else
+    die "sha256sum, shasum, or openssl is required"
+  fi
+}
+
+check_required_tools() {
+  case "$ARCHIVE_NAME" in
+    *.tar.gz|*.tgz)
+      command -v tar >/dev/null 2>&1 || die "tar is required"
+      command -v gzip >/dev/null 2>&1 || die "gzip is required"
+      ;;
+    *.zip)
+      command -v unzip >/dev/null 2>&1 || die "unzip is required"
+      ;;
+    *) die "unsupported archive format: $ARCHIVE_NAME" ;;
+  esac
+
+  if ! command -v sha256sum >/dev/null 2>&1 &&
+     ! command -v shasum >/dev/null 2>&1 &&
+     ! command -v openssl >/dev/null 2>&1; then
     die "sha256sum, shasum, or openssl is required"
   fi
 }
@@ -153,7 +179,15 @@ detect_target() {
     Darwin)
       case "$machine" in
         arm64|aarch64) printf '%s\n' macos-arm64 ;;
-        x86_64|amd64) printf '%s\n' macos-x86_64 ;;
+        x86_64|amd64)
+          # A translated shell reports x86_64 even when the host is Apple
+          # silicon. Prefer the native CLI binary when Rosetta 2 is detected.
+          if [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = 1 ]; then
+            printf '%s\n' macos-arm64
+          else
+            printf '%s\n' macos-x86_64
+          fi
+          ;;
         *) die "unsupported macOS architecture: $machine" ;;
       esac
       ;;
@@ -218,12 +252,27 @@ prepare_destination() {
   BIN_DIR="$FINAL_PARENT/cloudsmith"
   case "$TARGET" in windows-*) BIN="$BIN_DIR/cloudsmith.exe" ;; *) BIN="$BIN_DIR/cloudsmith" ;; esac
   METADATA_FILE="$BIN_DIR/.cloudsmith-installation"
-  LOCK_DIR="$FINAL_PARENT/.install.lock"
+  lock_dir="$FINAL_PARENT/.install.lock"
   mkdir -p "$FINAL_PARENT"
 
   waited=0
-  until mkdir "$LOCK_DIR" 2>/dev/null; do
-    [ "$waited" -lt 120 ] || die "timed out waiting for installation lock: $LOCK_DIR"
+  while :; do
+    pending_signal_status=0
+    trap 'pending_signal_status=130' INT
+    trap 'pending_signal_status=143' TERM
+
+    # Defer cancellation until ownership is known. The subshell prevents a
+    # process-group signal from killing mkdir after it creates the lock.
+    if (trap '' INT TERM; CLOUDSMITH_CLI_LOCK_OWNER_PID=$$ mkdir "$lock_dir") 2>/dev/null; then
+      LOCK_DIR="$lock_dir"
+      enable_signal_traps
+      [ "$pending_signal_status" -eq 0 ] || exit "$pending_signal_status"
+      break
+    fi
+    enable_signal_traps
+    [ "$pending_signal_status" -eq 0 ] || exit "$pending_signal_status"
+
+    [ "$waited" -lt 120 ] || die "timed out waiting for installation lock: $lock_dir"
     sleep 1
     waited=$((waited + 1))
   done
@@ -270,13 +319,11 @@ validate_archive_listing() {
 validate_archive_entries() {
   case "$ARCHIVE_FILE" in
     *.tar.gz|*.tgz)
-      command -v tar >/dev/null 2>&1 || die "tar is required"
       tar -tvzf "$ARCHIVE_FILE" > "$WORK_DIR/archive-listing.txt"
       validate_archive_listing "$WORK_DIR/archive-listing.txt"
       tar -tzf "$ARCHIVE_FILE" > "$WORK_DIR/archive-entries.txt"
       ;;
     *.zip)
-      command -v unzip >/dev/null 2>&1 || die "unzip is required"
       unzip -Z -l "$ARCHIVE_FILE" > "$WORK_DIR/archive-listing.txt"
       validate_archive_listing "$WORK_DIR/archive-listing.txt"
       unzip -Z1 "$ARCHIVE_FILE" > "$WORK_DIR/archive-entries.txt"
@@ -364,6 +411,7 @@ main() {
     return 0
   fi
 
+  check_required_tools
   download_archive
   stage_archive
   activate_staged_install
@@ -371,8 +419,7 @@ main() {
 }
 
 trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+enable_signal_traps
 
 parse_args "$@"
 set_default_install_root
