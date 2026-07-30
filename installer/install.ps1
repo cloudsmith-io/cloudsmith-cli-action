@@ -66,6 +66,33 @@ function Invoke-WithRetry {
     }
 }
 
+function Invoke-WithFilesystemRetry {
+    param(
+        [Parameter(Mandatory = $true)][scriptblock]$Action,
+        [ValidateRange(1, [int]::MaxValue)][int]$Attempts = 10,
+        [ValidateRange(0, [int]::MaxValue)][int]$DelayMilliseconds = 1000
+    )
+
+    # Windows Defender's real-time scan (or Search indexing) can briefly hold
+    # a handle on a just-extracted or just-touched directory, and
+    # Directory.Move fails outright if any handle is open. Retry only the
+    # transient access errors that pattern produces; anything else propagates
+    # immediately. The defaults match MSBuild's Copy task, which retries the
+    # same two exception types for the same reason.
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        try {
+            return & $Action
+        }
+        catch [System.UnauthorizedAccessException], [System.IO.IOException] {
+            if ($attempt -eq $Attempts) {
+                Write-Warning "Filesystem operation still blocked after $Attempts attempts $DelayMilliseconds ms apart; giving up"
+                throw
+            }
+            Start-Sleep -Milliseconds $DelayMilliseconds
+        }
+    }
+}
+
 function Test-DownloadUriAllowed {
     param([Parameter(Mandatory = $true)][string]$Uri)
 
@@ -482,17 +509,17 @@ try {
     # on wildcard characters like [ ] in the install root.
     $temporaryFinal = Join-Path $finalParent (".cloudsmith.new." + [Guid]::NewGuid().ToString("N"))
     $oldFinal = Join-Path $finalParent (".cloudsmith.old." + [Guid]::NewGuid().ToString("N"))
-    [System.IO.Directory]::Move($stagedDirectory, $temporaryFinal)
+    Invoke-WithFilesystemRetry { [System.IO.Directory]::Move($stagedDirectory, $temporaryFinal) }
 
     if (Test-Path -LiteralPath $binDirectory) {
-        [System.IO.Directory]::Move($binDirectory, $oldFinal)
+        Invoke-WithFilesystemRetry { [System.IO.Directory]::Move($binDirectory, $oldFinal) }
     }
     try {
-        [System.IO.Directory]::Move($temporaryFinal, $binDirectory)
+        Invoke-WithFilesystemRetry { [System.IO.Directory]::Move($temporaryFinal, $binDirectory) }
     }
     catch {
         if (Test-Path -LiteralPath $oldFinal) {
-            try { [System.IO.Directory]::Move($oldFinal, $binDirectory) } catch { Write-Warning "Failed to restore previous installation directory during rollback: $_" }
+            try { Invoke-WithFilesystemRetry { [System.IO.Directory]::Move($oldFinal, $binDirectory) } } catch { Write-Warning "Failed to restore previous installation directory during rollback: $_" }
         }
         throw
     }
