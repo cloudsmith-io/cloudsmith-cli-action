@@ -11,14 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Composite action** - The action is now a composite action that installs the standalone Cloudsmith CLI binary via bundled installer scripts. No Python or Node.js runtime is required.
 - **CLI-native OIDC** - The CLI performs the OIDC token exchange on its first authenticated command; the action only exports `CLOUDSMITH_ORG`, `CLOUDSMITH_SERVICE_SLUG`, and `CLOUDSMITH_OIDC_AUDIENCE`. The default audience remains `https://github.com/{repository-owner}`.
-- **Removed inputs** - `pip-install`, `oidc-auth-only`, `oidc-auth-retry`, `oidc-token-validate`, and `executable-path`. See the README migration table.
-- **Removed output** - `oidc-token`. The action never holds a Cloudsmith token.
+- **Removed inputs** - `pip-install`, `oidc-auth-retry`, `oidc-token-validate`, and `executable-path`. `oidc-auth-only` survives only as a deprecated alias for `export-api-key` and no longer skips the CLI installation. See the README migration table.
+- **Removed output** - `oidc-token`. By default the action never holds a Cloudsmith token; it is set only when `export-api-key` (or its `oidc-auth-only` alias) is enabled.
 - **No config file** - `api-host`, `api-proxy`, `api-ssl-verify`, and `api-user-agent` are exported as `CLOUDSMITH_*` environment variables instead of being written to a config file.
 
 ### Added
 
 - `install-directory` input to control where versioned CLI installations live.
 - `verify-auth` input to run `cloudsmith whoami` after setup.
+- `export-api-key` input (with `oidc-auth-only` accepted as a deprecated alias) to restore the v2 token hand-off for third-party registry clients: the action runs `cloudsmith tokens show` during setup — performing the OIDC token exchange — masks the token in workflow logs, exports it as `CLOUDSMITH_API_KEY` for later steps, and sets the `oidc-token` output. Requires Cloudsmith CLI 1.21.0 or later.
 - `cli-version`, `target`, `cli-path`, and `bin-directory` outputs.
 - Linux ARM64 (glibc and musl) and macOS ARM64 support via the standalone binaries.
 

@@ -61,6 +61,22 @@ case "$verify_auth" in
   *) fail "verify-auth must be true or false" ;;
 esac
 
+export_api_key="$(printf '%s' "$INPUT_EXPORT_API_KEY" | tr '[:upper:]' '[:lower:]')"
+case "$export_api_key" in
+  true|false) ;;
+  *) fail "export-api-key must be true or false" ;;
+esac
+
+oidc_auth_only="$(printf '%s' "$INPUT_OIDC_AUTH_ONLY" | tr '[:upper:]' '[:lower:]')"
+case "$oidc_auth_only" in
+  true|false) ;;
+  *) fail "oidc-auth-only must be true or false" ;;
+esac
+if [[ "$oidc_auth_only" == "true" ]]; then
+  echo "::warning::The 'oidc-auth-only' input is a deprecated alias for 'export-api-key'. Version 3 always installs the CLI before exporting the token."
+  export_api_key="true"
+fi
+
 cli_version="$INPUT_CLI_VERSION"
 if [[ -z "$cli_version" ]]; then
   cli_version="latest"
@@ -132,6 +148,19 @@ case "$api_ssl_verify" in
   false) append_env CLOUDSMITH_WITHOUT_API_SSL_VERIFY "true" ;;
 esac
 
+exported_token=""
+if [[ "$export_api_key" == "true" ]]; then
+  # 'tokens show' prints only the resolved token on stdout, performing the
+  # OIDC token exchange when that is the resolving credential source.
+  if ! exported_token="$("$executable" tokens show)"; then
+    fail "Failed to read the API token. 'export-api-key' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+  fi
+  [[ -n "$exported_token" ]] \
+    || fail "The CLI returned an empty token"
+  echo "::add-mask::$exported_token"
+  append_env CLOUDSMITH_API_KEY "$exported_token"
+fi
+
 if [[ "$verify_auth" == "true" ]]; then
   # whoami prints its status to stdout. Some CLI builds exit 0 even on a 401,
   # so treat the failure marker in the output as authoritative too.
@@ -153,5 +182,7 @@ fi
   printf 'cli-path=%s\n' "$executable"
   printf 'bin-directory=%s\n' "$bin_dir"
 } >> "$GITHUB_OUTPUT"
+[[ -z "$exported_token" ]] \
+  || printf 'oidc-token=%s\n' "$exported_token" >> "$GITHUB_OUTPUT"
 
 echo "Cloudsmith CLI $resolved_version is available at $executable"
