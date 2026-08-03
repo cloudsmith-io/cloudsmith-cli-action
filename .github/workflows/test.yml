@@ -264,10 +264,22 @@ jobs:
           persist-credentials: false
 
       - name: Install and authenticate
+        id: setup
         uses: ./
         with:
           api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          export-auth-token: "true"
           verify-auth: "true"
+
+      - name: Check exported token
+        shell: bash
+        env:
+          EXPECTED_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+          OUTPUT_TOKEN: ${{ steps.setup.outputs.oidc-token }}
+        run: |
+          set -euo pipefail
+          test "$CLOUDSMITH_API_KEY" = "$EXPECTED_API_KEY"
+          test "$OUTPUT_TOKEN" = "$EXPECTED_API_KEY"
 
       - name: whoami from PATH
         shell: bash
@@ -295,11 +307,22 @@ jobs:
           persist-credentials: false
 
       - name: Install and authenticate
+        id: setup
         uses: ./
         with:
           oidc-namespace: ${{ vars.CLOUDSMITH_NAMESPACE }}
           oidc-service-slug: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+          export-auth-token: "true"
           verify-auth: "true"
+
+      - name: Check exported token
+        shell: bash
+        env:
+          OUTPUT_TOKEN: ${{ steps.setup.outputs.oidc-token }}
+        run: |
+          set -euo pipefail
+          test -n "$OUTPUT_TOKEN"
+          test "$CLOUDSMITH_API_KEY" = "$OUTPUT_TOKEN"
 
       - name: whoami from PATH
         shell: bash

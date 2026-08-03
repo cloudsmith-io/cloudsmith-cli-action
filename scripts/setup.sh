@@ -157,6 +157,8 @@ if [[ "$export_auth_token" == "true" ]]; then
   fi
   [[ -n "$exported_token" ]] \
     || fail "The CLI returned an empty token"
+  [[ "$exported_token" != *$'\n'* && "$exported_token" != *$'\r'* ]] \
+    || fail "The CLI returned a token containing a newline"
   echo "::add-mask::$exported_token"
   append_env CLOUDSMITH_API_KEY "$exported_token"
 fi

@@ -168,6 +168,9 @@ if ($exportAuthToken -eq 'true') {
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($exportedToken)) {
     throw "Failed to read the authentication token. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   }
+  if ($exportedToken.Contains("`n") -or $exportedToken.Contains("`r")) {
+    throw "The CLI returned a token containing a newline"
+  }
   Write-Host "::add-mask::$exportedToken"
   Write-JobEnvironment -Name CLOUDSMITH_API_KEY -Value $exportedToken
 }
