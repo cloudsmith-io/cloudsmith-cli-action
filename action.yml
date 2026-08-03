@@ -52,11 +52,11 @@ inputs:
     required: false
     default: "false"
   export-auth-token:
-    description: "Export the authentication token resolved by the CLI as CLOUDSMITH_API_KEY for later steps. Requires Cloudsmith CLI 1.21.0 or later."
+    description: "Resolve credentials with 'cloudsmith credential-helper generic', then export its password as CLOUDSMITH_API_KEY and username as CLOUDSMITH_USERNAME. Requires Cloudsmith CLI 1.21.0 or later."
     required: false
     default: "false"
   oidc-auth-only:
-    description: "Deprecated alias for export-auth-token, which provides the same result through the CLI instead of raw API calls."
+    description: "Deprecated alias for export-auth-token. When true, it enables the same CLI credential-helper flow."
     required: false
     default: "false"
 
@@ -74,7 +74,7 @@ outputs:
     description: "Directory added to PATH for subsequent steps."
     value: ${{ steps.setup-posix.outputs.bin-directory || steps.setup-windows.outputs.bin-directory }}
   oidc-token:
-    description: "Authentication token resolved by the CLI when export-auth-token is enabled. Masked in workflow logs."
+    description: "Effective authentication token resolved by the CLI when export-auth-token or its oidc-auth-only alias is enabled. Masked in workflow logs."
     value: ${{ steps.setup-posix.outputs.oidc-token || steps.setup-windows.outputs.oidc-token }}
 
 runs:

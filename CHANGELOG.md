@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ---
 ### Added
 
-- `export-auth-token` exports the CLI-resolved token. `oidc-auth-only` is its deprecated alias and provides the same result through `cloudsmith tokens show` instead of raw API calls.
+- `export-auth-token` now resolves the effective credential through `cloudsmith credential-helper generic`, validates its version-1 JSON response, exports `password` as `CLOUDSMITH_API_KEY`, exports the helper's `username` as `CLOUDSMITH_USERNAME`, and preserves the masked `oidc-token` compatibility output. `oidc-auth-only` remains a deprecated alias that enables the same flow.
 
 ## [3.0.0] - 2026-07-30
 ---

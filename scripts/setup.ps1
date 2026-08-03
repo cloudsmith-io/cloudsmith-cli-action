@@ -59,7 +59,7 @@ if ($oidcAuthOnly -notin @('true', 'false')) {
   throw "oidc-auth-only must be true or false"
 }
 if ($oidcAuthOnly -eq 'true') {
-  Write-Host "::warning::The 'oidc-auth-only' input is deprecated and aliases 'export-auth-token', which provides the same result through the CLI instead of raw API calls."
+  Write-Host "::warning::The 'oidc-auth-only' input is deprecated; use 'export-auth-token'. Both resolve credentials through 'cloudsmith credential-helper generic'."
   $exportAuthToken = 'true'
 }
 
@@ -161,18 +161,52 @@ switch ($apiSslVerify) {
 }
 
 $exportedToken = ''
+$credentialUsername = ''
 if ($exportAuthToken -eq 'true') {
-  # 'tokens show' prints only the resolved token on stdout, performing the
-  # OIDC token exchange when that is the resolving credential source.
-  $exportedToken = (& $executable tokens show | Out-String).Trim()
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($exportedToken)) {
-    throw "Failed to read the authentication token. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+  # Resolve once: the helper performs the OIDC exchange when OIDC is the
+  # effective source and emits a versioned JSON credential document.
+  $credentialJsonLines = & $executable credential-helper generic
+  $credentialStatus = $LASTEXITCODE
+  if ($credentialStatus -ne 0) {
+    throw "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   }
+  $credentialJson = ($credentialJsonLines | Out-String).Trim()
+  if ([string]::IsNullOrEmpty($credentialJson)) {
+    throw "The CLI returned an empty credential-helper response."
+  }
+
+  try {
+    $credential = $credentialJson | ConvertFrom-Json -ErrorAction Stop
+  }
+  catch {
+    throw "The CLI returned an invalid credential-helper response."
+  }
+
+  $properties = @($credential.PSObject.Properties.Name)
+  $hasExpectedProperties = (
+    $properties.Count -eq 3 -and
+    $properties -contains 'version' -and
+    $properties -contains 'username' -and
+    $properties -contains 'password'
+  )
+  if (
+    -not $hasExpectedProperties -or
+    $credential.version -ne 1 -or
+    $credential.username -ne 'token' -or
+    $credential.password -isnot [string] -or
+    [string]::IsNullOrEmpty($credential.password)
+  ) {
+    throw "The CLI returned an invalid or unsupported credential-helper response."
+  }
+
+  $credentialUsername = [string]$credential.username
+  $exportedToken = [string]$credential.password
   if ($exportedToken.Contains("`n") -or $exportedToken.Contains("`r")) {
     throw "The CLI returned a token containing a newline"
   }
   Write-Host "::add-mask::$exportedToken"
   Write-JobEnvironment -Name CLOUDSMITH_API_KEY -Value $exportedToken
+  Write-JobEnvironment -Name CLOUDSMITH_USERNAME -Value $credentialUsername
 }
 
 if ($verifyAuth -eq 'true') {

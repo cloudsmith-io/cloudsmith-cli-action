@@ -73,7 +73,7 @@ case "$oidc_auth_only" in
   *) fail "oidc-auth-only must be true or false" ;;
 esac
 if [[ "$oidc_auth_only" == "true" ]]; then
-  echo "::warning::The 'oidc-auth-only' input is deprecated and aliases 'export-auth-token', which provides the same result through the CLI instead of raw API calls."
+  echo "::warning::The 'oidc-auth-only' input is deprecated; use 'export-auth-token'. Both resolve credentials through 'cloudsmith credential-helper generic'."
   export_auth_token="true"
 fi
 
@@ -149,18 +149,46 @@ case "$api_ssl_verify" in
 esac
 
 exported_token=""
+credential_username=""
 if [[ "$export_auth_token" == "true" ]]; then
-  # 'tokens show' prints only the resolved token on stdout, performing the
-  # OIDC token exchange when that is the resolving credential source.
-  if ! exported_token="$("$executable" tokens show)"; then
-    fail "Failed to read the authentication token. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+  command -v jq >/dev/null 2>&1 \
+    || fail "The 'export-auth-token' input requires jq on Linux and macOS runners."
+
+  # Resolve once: the helper performs the OIDC exchange when OIDC is the
+  # effective source and emits a versioned JSON credential document.
+  if ! credential_document="$("$executable" credential-helper generic)"; then
+    fail "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   fi
+
+  # Validate the protocol before extracting the password. Never assign the
+  # raw JSON document to CLOUDSMITH_API_KEY.
+  if ! credential_values="$(
+    printf '%s' "$credential_document" | jq -er '
+      if type == "object"
+        and (keys == ["password", "username", "version"])
+        and (.version == 1)
+        and (.username == "token")
+        and (.password | type == "string" and length > 0)
+        and (.password | test("[\\r\\n]") | not)
+      then .username, .password
+      else error("unsupported credential-helper response")
+      end
+    '
+  )"; then
+    fail "The CLI returned an invalid or unsupported credential-helper response."
+  fi
+  [[ "$credential_values" == *$'\n'* ]] \
+    || fail "The CLI returned an incomplete credential-helper response."
+  credential_username="${credential_values%%$'\n'*}"
+  exported_token="${credential_values#*$'\n'}"
+
   [[ -n "$exported_token" ]] \
     || fail "The CLI returned an empty token"
   [[ "$exported_token" != *$'\n'* && "$exported_token" != *$'\r'* ]] \
     || fail "The CLI returned a token containing a newline"
   echo "::add-mask::$exported_token"
   append_env CLOUDSMITH_API_KEY "$exported_token"
+  append_env CLOUDSMITH_USERNAME "$credential_username"
 fi
 
 if [[ "$verify_auth" == "true" ]]; then
