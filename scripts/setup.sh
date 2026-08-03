@@ -61,6 +61,22 @@ case "$verify_auth" in
   *) fail "verify-auth must be true or false" ;;
 esac
 
+export_auth_token="$(printf '%s' "$INPUT_EXPORT_AUTH_TOKEN" | tr '[:upper:]' '[:lower:]')"
+case "$export_auth_token" in
+  true|false) ;;
+  *) fail "export-auth-token must be true or false" ;;
+esac
+
+oidc_auth_only="$(printf '%s' "$INPUT_OIDC_AUTH_ONLY" | tr '[:upper:]' '[:lower:]')"
+case "$oidc_auth_only" in
+  true|false) ;;
+  *) fail "oidc-auth-only must be true or false" ;;
+esac
+if [[ "$oidc_auth_only" == "true" ]]; then
+  echo "::warning::The 'oidc-auth-only' input is deprecated; use 'export-auth-token'. Both resolve credentials through 'cloudsmith credential-helper generic'."
+  export_auth_token="true"
+fi
+
 cli_version="$INPUT_CLI_VERSION"
 if [[ -z "$cli_version" ]]; then
   cli_version="latest"
@@ -132,6 +148,49 @@ case "$api_ssl_verify" in
   false) append_env CLOUDSMITH_WITHOUT_API_SSL_VERIFY "true" ;;
 esac
 
+exported_token=""
+credential_username=""
+if [[ "$export_auth_token" == "true" ]]; then
+  command -v jq >/dev/null 2>&1 \
+    || fail "The 'export-auth-token' input requires jq on Linux and macOS runners."
+
+  # Resolve once: the helper performs the OIDC exchange when OIDC is the
+  # effective source and emits a versioned JSON credential document.
+  if ! credential_document="$("$executable" credential-helper generic)"; then
+    fail "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+  fi
+
+  # Validate the protocol before extracting the password. Never assign the
+  # raw JSON document to CLOUDSMITH_API_KEY.
+  if ! credential_values="$(
+    printf '%s' "$credential_document" | jq -er '
+      if type == "object"
+        and (keys == ["password", "username", "version"])
+        and (.version == 1)
+        and (.username == "token")
+        and (.password | type == "string" and length > 0)
+        and (.password | test("[\\r\\n]") | not)
+      then .username, .password
+      else error("unsupported credential-helper response")
+      end
+    '
+  )"; then
+    fail "The CLI returned an invalid or unsupported credential-helper response."
+  fi
+  [[ "$credential_values" == *$'\n'* ]] \
+    || fail "The CLI returned an incomplete credential-helper response."
+  credential_username="${credential_values%%$'\n'*}"
+  exported_token="${credential_values#*$'\n'}"
+
+  [[ -n "$exported_token" ]] \
+    || fail "The CLI returned an empty token"
+  [[ "$exported_token" != *$'\n'* && "$exported_token" != *$'\r'* ]] \
+    || fail "The CLI returned a token containing a newline"
+  echo "::add-mask::$exported_token"
+  append_env CLOUDSMITH_API_KEY "$exported_token"
+  append_env CLOUDSMITH_USERNAME "$credential_username"
+fi
+
 if [[ "$verify_auth" == "true" ]]; then
   # whoami prints its status to stdout. Some CLI builds exit 0 even on a 401,
   # so treat the failure marker in the output as authoritative too.
@@ -153,5 +212,7 @@ fi
   printf 'cli-path=%s\n' "$executable"
   printf 'bin-directory=%s\n' "$bin_dir"
 } >> "$GITHUB_OUTPUT"
+[[ -z "$exported_token" ]] \
+  || printf 'oidc-token=%s\n' "$exported_token" >> "$GITHUB_OUTPUT"
 
 echo "Cloudsmith CLI $resolved_version is available at $executable"

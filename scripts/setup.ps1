@@ -49,6 +49,20 @@ if ($verifyAuth -notin @('true', 'false')) {
   throw "verify-auth must be true or false"
 }
 
+$exportAuthToken = ([string]$env:INPUT_EXPORT_AUTH_TOKEN).ToLowerInvariant()
+if ($exportAuthToken -notin @('true', 'false')) {
+  throw "export-auth-token must be true or false"
+}
+
+$oidcAuthOnly = ([string]$env:INPUT_OIDC_AUTH_ONLY).ToLowerInvariant()
+if ($oidcAuthOnly -notin @('true', 'false')) {
+  throw "oidc-auth-only must be true or false"
+}
+if ($oidcAuthOnly -eq 'true') {
+  Write-Host "::warning::The 'oidc-auth-only' input is deprecated; use 'export-auth-token'. Both resolve credentials through 'cloudsmith credential-helper generic'."
+  $exportAuthToken = 'true'
+}
+
 $cliVersion = $env:INPUT_CLI_VERSION
 if ([string]::IsNullOrWhiteSpace($cliVersion)) {
   $cliVersion = "latest"
@@ -146,6 +160,55 @@ switch ($apiSslVerify) {
   'false' { Write-JobEnvironment -Name CLOUDSMITH_WITHOUT_API_SSL_VERIFY -Value 'true' }
 }
 
+$exportedToken = ''
+$credentialUsername = ''
+if ($exportAuthToken -eq 'true') {
+  # Resolve once: the helper performs the OIDC exchange when OIDC is the
+  # effective source and emits a versioned JSON credential document.
+  $credentialJsonLines = & $executable credential-helper generic
+  $credentialStatus = $LASTEXITCODE
+  if ($credentialStatus -ne 0) {
+    throw "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+  }
+  $credentialJson = ($credentialJsonLines | Out-String).Trim()
+  if ([string]::IsNullOrEmpty($credentialJson)) {
+    throw "The CLI returned an empty credential-helper response."
+  }
+
+  try {
+    $credential = $credentialJson | ConvertFrom-Json -ErrorAction Stop
+  }
+  catch {
+    throw "The CLI returned an invalid credential-helper response."
+  }
+
+  $properties = @($credential.PSObject.Properties.Name)
+  $hasExpectedProperties = (
+    $properties.Count -eq 3 -and
+    $properties -contains 'version' -and
+    $properties -contains 'username' -and
+    $properties -contains 'password'
+  )
+  if (
+    -not $hasExpectedProperties -or
+    $credential.version -ne 1 -or
+    $credential.username -ne 'token' -or
+    $credential.password -isnot [string] -or
+    [string]::IsNullOrEmpty($credential.password)
+  ) {
+    throw "The CLI returned an invalid or unsupported credential-helper response."
+  }
+
+  $credentialUsername = [string]$credential.username
+  $exportedToken = [string]$credential.password
+  if ($exportedToken.Contains("`n") -or $exportedToken.Contains("`r")) {
+    throw "The CLI returned a token containing a newline"
+  }
+  Write-Host "::add-mask::$exportedToken"
+  Write-JobEnvironment -Name CLOUDSMITH_API_KEY -Value $exportedToken
+  Write-JobEnvironment -Name CLOUDSMITH_USERNAME -Value $credentialUsername
+}
+
 if ($verifyAuth -eq 'true') {
   # whoami prints its status to stdout. Some CLI builds exit 0 even on a 401,
   # so treat the failure marker in the output as authoritative too.
@@ -162,5 +225,8 @@ Add-GitHubLine -Path $env:GITHUB_OUTPUT -Line "cli-version=$resolvedVersion"
 Add-GitHubLine -Path $env:GITHUB_OUTPUT -Line "target=$target"
 Add-GitHubLine -Path $env:GITHUB_OUTPUT -Line "cli-path=$executable"
 Add-GitHubLine -Path $env:GITHUB_OUTPUT -Line "bin-directory=$binDirectory"
+if (-not [string]::IsNullOrEmpty($exportedToken)) {
+  Add-GitHubLine -Path $env:GITHUB_OUTPUT -Line "oidc-token=$exportedToken"
+}
 
 Write-Host "Cloudsmith CLI $resolvedVersion is available at $executable"

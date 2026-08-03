@@ -251,10 +251,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        include:
+          - os: ubuntu-latest
+            export-auth-token: "true"
+            oidc-auth-only: "false"
+          # Exercise the deprecated alias as well as the preferred input.
+          - os: macos-latest
+            export-auth-token: "false"
+            oidc-auth-only: "true"
+          - os: windows-latest
+            export-auth-token: "true"
+            oidc-auth-only: "false"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -264,10 +271,24 @@ jobs:
           persist-credentials: false
 
       - name: Install and authenticate
+        id: setup
         uses: ./
         with:
           api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          export-auth-token: ${{ matrix.export-auth-token }}
+          oidc-auth-only: ${{ matrix.oidc-auth-only }}
           verify-auth: "true"
+
+      - name: Check exported token
+        shell: bash
+        env:
+          EXPECTED_API_KEY: ${{ secrets.CLOUDSMITH_API_KEY }}
+          OUTPUT_TOKEN: ${{ steps.setup.outputs.oidc-token }}
+        run: |
+          set -euo pipefail
+          test "$CLOUDSMITH_API_KEY" = "$EXPECTED_API_KEY"
+          test "$CLOUDSMITH_USERNAME" = "token"
+          test "$OUTPUT_TOKEN" = "$EXPECTED_API_KEY"
 
       - name: whoami from PATH
         shell: bash
@@ -282,10 +303,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        include:
+          - os: ubuntu-latest
+            export-auth-token: "true"
+            oidc-auth-only: "false"
+          # Exercise the deprecated alias as well as the preferred input.
+          - os: macos-latest
+            export-auth-token: "false"
+            oidc-auth-only: "true"
+          - os: windows-latest
+            export-auth-token: "true"
+            oidc-auth-only: "false"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -295,11 +323,24 @@ jobs:
           persist-credentials: false
 
       - name: Install and authenticate
+        id: setup
         uses: ./
         with:
           oidc-namespace: ${{ vars.CLOUDSMITH_NAMESPACE }}
           oidc-service-slug: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
+          export-auth-token: ${{ matrix.export-auth-token }}
+          oidc-auth-only: ${{ matrix.oidc-auth-only }}
           verify-auth: "true"
+
+      - name: Check exported token
+        shell: bash
+        env:
+          OUTPUT_TOKEN: ${{ steps.setup.outputs.oidc-token }}
+        run: |
+          set -euo pipefail
+          test -n "$OUTPUT_TOKEN"
+          test "$CLOUDSMITH_API_KEY" = "$OUTPUT_TOKEN"
+          test "$CLOUDSMITH_USERNAME" = "token"
 
       - name: whoami from PATH
         shell: bash

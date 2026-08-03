@@ -16,7 +16,7 @@ Install the standalone [Cloudsmith CLI](https://github.com/cloudsmith-io/cloudsm
 | Authentication | OpenID Connect (OIDC) or API key |
 | Runners | Linux, macOS, and Windows |
 | Architectures | x86-64, plus Linux and macOS ARM64 |
-| Runtime dependencies | None; the action installs the standalone CLI binary |
+| Runtime dependencies | No Python or Node.js; `export-auth-token` additionally uses `jq` on Linux and macOS |
 | Version selection | Latest release or a specific CLI version |
 
 ## Quick start
@@ -66,7 +66,18 @@ Choose one of the following authentication methods:
 | OIDC | `oidc-namespace` and `oidc-service-slug` | The CLI exchanges a GitHub OIDC token on its first authenticated command | CI/CD workflows |
 | API key | `api-key` | The action masks and exports the key for later steps | Workflows that cannot use OIDC |
 
-With OIDC, the action exports the service account context needed by the CLI. The Cloudsmith access token is requested only when the CLI first needs to authenticate and is not exposed as an action output.
+With OIDC, the action exports the service account context needed by the CLI. The Cloudsmith access token is requested only when the CLI first needs to authenticate and is not exposed by default. If a later step needs the effective credential itself — for example to configure npm, pip, or `docker login` against a Cloudsmith registry — set `export-auth-token: "true"`. The action runs `cloudsmith credential-helper generic` once, validates its versioned response, masks and exports its `password` as `CLOUDSMITH_API_KEY`, exports its package-manager username (`token`) as `CLOUDSMITH_USERNAME`, and sets the compatibility `oidc-token` output. This requires Cloudsmith CLI 1.21.0 or later. On a self-hosted Linux or macOS runner, `jq` must also be available on `PATH`.
+
+```yaml
+- uses: cloudsmith-io/cloudsmith-cli-action@v3
+  with:
+    oidc-namespace: "YOUR-NAMESPACE"
+    oidc-service-slug: "YOUR-SERVICE-ACCOUNT"
+    export-auth-token: "true"
+
+- name: Authenticate npm against Cloudsmith
+  run: npm config set //npm.cloudsmith.io/YOUR-NAMESPACE/YOUR-REPOSITORY/:_authToken "$CLOUDSMITH_API_KEY"
+```
 
 ```mermaid
 flowchart LR
@@ -97,6 +108,8 @@ An authentication method is required: provide `api-key`, or provide both `oidc-n
 | `oidc-namespace` | Cloudsmith organisation or namespace | For OIDC authentication | — |
 | `oidc-service-slug` | Cloudsmith service account slug | For OIDC authentication | — |
 | `oidc-audience` | Audience requested for the GitHub OIDC token | No | `https://github.com/{repository-owner}` |
+| `export-auth-token` | Resolve the effective credential through `cloudsmith credential-helper generic`, export its password as `CLOUDSMITH_API_KEY`, and export its username as `CLOUDSMITH_USERNAME` (requires CLI 1.21.0+) | No | `false` |
+| `oidc-auth-only` | Deprecated alias for `export-auth-token`; when `true`, it enables the same credential-helper flow | No | `false` |
 
 ### API configuration inputs
 
@@ -115,6 +128,7 @@ An authentication method is required: provide `api-key`, or provide both `oidc-n
 | `target` | Resolved binary target, such as `linux-x86_64-gnu` |
 | `cli-path` | Absolute path to the Cloudsmith CLI executable |
 | `bin-directory` | Directory added to `PATH` for later steps |
+| `oidc-token` | Effective authentication token resolved when `export-auth-token` or its `oidc-auth-only` alias is enabled (masked in logs; retained for compatibility) |
 
 Access an output through the action step's `id`:
 
@@ -143,6 +157,7 @@ The action configures later steps by exporting the environment variables that co
 | `api-proxy` | `CLOUDSMITH_API_PROXY` |
 | `api-user-agent` | `CLOUDSMITH_API_USER_AGENT` |
 | `api-ssl-verify` | `CLOUDSMITH_WITHOUT_API_SSL_VERIFY` |
+| `export-auth-token` | `CLOUDSMITH_API_KEY` (effective credential) and `CLOUDSMITH_USERNAME` (`token`) |
 
 ## Publish a package
 
@@ -188,19 +203,19 @@ Version 3 installs the standalone CLI instead of the Python package. Existing wo
 <details>
 <summary><strong>View removed inputs, outputs, and migration steps</strong></summary>
 
-### Removed v2 inputs
+### Removed and deprecated v2 inputs
 
-| Removed input | Migration |
+| v2 input | Migration |
 | --- | --- |
 | `pip-install` | Remove it. Version 3 always installs the standalone binary. |
-| `oidc-auth-only` | Remove it. The CLI must be installed to use this action. If only a token is needed, request one directly from the [Cloudsmith OIDC endpoint](https://docs.cloudsmith.com/authentication/openid-connect). |
+| `oidc-auth-only` | Deprecated alias for `export-auth-token`; when `true`, it enables the same `cloudsmith credential-helper generic` flow. |
 | `oidc-auth-retry` | Remove it. The CLI manages the token exchange and retries. |
 | `oidc-token-validate` | Replace it with `verify-auth: "true"`. |
 | `executable-path` | Use `install-directory` to control the installation root. Use the `cli-path` or `bin-directory` output for the resolved location. |
 
-### Removed v2 output
+### `oidc-token` output
 
-The `oidc-token` output has been removed. The action no longer receives or exposes the Cloudsmith access token. Authenticate subsequent requests with the CLI, or request a token directly from the Cloudsmith OIDC endpoint.
+By default the action no longer receives or exposes the Cloudsmith access token; authenticate subsequent requests with the CLI. Set `export-auth-token: "true"` to resolve the effective credential through `cloudsmith credential-helper generic`, export it as `CLOUDSMITH_API_KEY`, and restore the `oidc-token` output. `oidc-auth-only: "true"` is a deprecated alias that enables the same behavior. Requires Cloudsmith CLI 1.21.0 or later.
 
 ### API configuration
 

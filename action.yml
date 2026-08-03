@@ -51,6 +51,14 @@ inputs:
     description: "Run 'cloudsmith whoami' after setup to verify authentication."
     required: false
     default: "false"
+  export-auth-token:
+    description: "Resolve credentials with 'cloudsmith credential-helper generic', then export its password as CLOUDSMITH_API_KEY and username as CLOUDSMITH_USERNAME. Requires Cloudsmith CLI 1.21.0 or later."
+    required: false
+    default: "false"
+  oidc-auth-only:
+    description: "Deprecated alias for export-auth-token. When true, it enables the same CLI credential-helper flow."
+    required: false
+    default: "false"
 
 outputs:
   cli-version:
@@ -65,6 +73,9 @@ outputs:
   bin-directory:
     description: "Directory added to PATH for subsequent steps."
     value: ${{ steps.setup-posix.outputs.bin-directory || steps.setup-windows.outputs.bin-directory }}
+  oidc-token:
+    description: "Effective authentication token resolved by the CLI when export-auth-token or its oidc-auth-only alias is enabled. Masked in workflow logs."
+    value: ${{ steps.setup-posix.outputs.oidc-token || steps.setup-windows.outputs.oidc-token }}
 
 runs:
   using: "composite"
@@ -85,6 +96,8 @@ runs:
         INPUT_API_SSL_VERIFY: ${{ inputs.api-ssl-verify }}
         INPUT_API_USER_AGENT: ${{ inputs.api-user-agent }}
         INPUT_VERIFY_AUTH: ${{ inputs.verify-auth }}
+        INPUT_EXPORT_AUTH_TOKEN: ${{ inputs.export-auth-token }}
+        INPUT_OIDC_AUTH_ONLY: ${{ inputs.oidc-auth-only }}
       run: bash "$GITHUB_ACTION_PATH/scripts/setup.sh"
 
     - name: Install and configure Cloudsmith CLI
@@ -103,4 +116,6 @@ runs:
         INPUT_API_SSL_VERIFY: ${{ inputs.api-ssl-verify }}
         INPUT_API_USER_AGENT: ${{ inputs.api-user-agent }}
         INPUT_VERIFY_AUTH: ${{ inputs.verify-auth }}
+        INPUT_EXPORT_AUTH_TOKEN: ${{ inputs.export-auth-token }}
+        INPUT_OIDC_AUTH_ONLY: ${{ inputs.oidc-auth-only }}
       run: '& "$env:GITHUB_ACTION_PATH\scripts\setup.ps1"'
