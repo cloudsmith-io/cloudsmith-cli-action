@@ -51,12 +51,12 @@ inputs:
     description: "Run 'cloudsmith whoami' after setup to verify authentication."
     required: false
     default: "false"
-  export-api-key:
-    description: "Export the API token the CLI resolves as CLOUDSMITH_API_KEY for later steps, performing the OIDC token exchange during setup. Requires Cloudsmith CLI 1.21.0 or later."
+  export-auth-token:
+    description: "Export the authentication token resolved by the CLI as CLOUDSMITH_API_KEY for later steps. Requires Cloudsmith CLI 1.21.0 or later."
     required: false
     default: "false"
   oidc-auth-only:
-    description: "Deprecated alias for export-api-key, kept for v2 migration. Version 3 always installs the CLI."
+    description: "Deprecated alias for export-auth-token, which provides the same result through the CLI instead of raw API calls."
     required: false
     default: "false"
 
@@ -74,7 +74,7 @@ outputs:
     description: "Directory added to PATH for subsequent steps."
     value: ${{ steps.setup-posix.outputs.bin-directory || steps.setup-windows.outputs.bin-directory }}
   oidc-token:
-    description: "API token resolved by the CLI when export-api-key is enabled. Masked in workflow logs."
+    description: "Authentication token resolved by the CLI when export-auth-token is enabled. Masked in workflow logs."
     value: ${{ steps.setup-posix.outputs.oidc-token || steps.setup-windows.outputs.oidc-token }}
 
 runs:
@@ -96,7 +96,7 @@ runs:
         INPUT_API_SSL_VERIFY: ${{ inputs.api-ssl-verify }}
         INPUT_API_USER_AGENT: ${{ inputs.api-user-agent }}
         INPUT_VERIFY_AUTH: ${{ inputs.verify-auth }}
-        INPUT_EXPORT_API_KEY: ${{ inputs.export-api-key }}
+        INPUT_EXPORT_AUTH_TOKEN: ${{ inputs.export-auth-token }}
         INPUT_OIDC_AUTH_ONLY: ${{ inputs.oidc-auth-only }}
       run: bash "$GITHUB_ACTION_PATH/scripts/setup.sh"
 
@@ -116,6 +116,6 @@ runs:
         INPUT_API_SSL_VERIFY: ${{ inputs.api-ssl-verify }}
         INPUT_API_USER_AGENT: ${{ inputs.api-user-agent }}
         INPUT_VERIFY_AUTH: ${{ inputs.verify-auth }}
-        INPUT_EXPORT_API_KEY: ${{ inputs.export-api-key }}
+        INPUT_EXPORT_AUTH_TOKEN: ${{ inputs.export-auth-token }}
         INPUT_OIDC_AUTH_ONLY: ${{ inputs.oidc-auth-only }}
       run: '& "$env:GITHUB_ACTION_PATH\scripts\setup.ps1"'

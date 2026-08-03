@@ -61,10 +61,10 @@ case "$verify_auth" in
   *) fail "verify-auth must be true or false" ;;
 esac
 
-export_api_key="$(printf '%s' "$INPUT_EXPORT_API_KEY" | tr '[:upper:]' '[:lower:]')"
-case "$export_api_key" in
+export_auth_token="$(printf '%s' "$INPUT_EXPORT_AUTH_TOKEN" | tr '[:upper:]' '[:lower:]')"
+case "$export_auth_token" in
   true|false) ;;
-  *) fail "export-api-key must be true or false" ;;
+  *) fail "export-auth-token must be true or false" ;;
 esac
 
 oidc_auth_only="$(printf '%s' "$INPUT_OIDC_AUTH_ONLY" | tr '[:upper:]' '[:lower:]')"
@@ -73,8 +73,8 @@ case "$oidc_auth_only" in
   *) fail "oidc-auth-only must be true or false" ;;
 esac
 if [[ "$oidc_auth_only" == "true" ]]; then
-  echo "::warning::The 'oidc-auth-only' input is a deprecated alias for 'export-api-key'. Version 3 always installs the CLI before exporting the token."
-  export_api_key="true"
+  echo "::warning::The 'oidc-auth-only' input is deprecated and aliases 'export-auth-token', which provides the same result through the CLI instead of raw API calls."
+  export_auth_token="true"
 fi
 
 cli_version="$INPUT_CLI_VERSION"
@@ -149,11 +149,11 @@ case "$api_ssl_verify" in
 esac
 
 exported_token=""
-if [[ "$export_api_key" == "true" ]]; then
+if [[ "$export_auth_token" == "true" ]]; then
   # 'tokens show' prints only the resolved token on stdout, performing the
   # OIDC token exchange when that is the resolving credential source.
   if ! exported_token="$("$executable" tokens show)"; then
-    fail "Failed to read the API token. 'export-api-key' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+    fail "Failed to read the authentication token. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   fi
   [[ -n "$exported_token" ]] \
     || fail "The CLI returned an empty token"

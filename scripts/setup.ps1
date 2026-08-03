@@ -49,9 +49,9 @@ if ($verifyAuth -notin @('true', 'false')) {
   throw "verify-auth must be true or false"
 }
 
-$exportApiKey = ([string]$env:INPUT_EXPORT_API_KEY).ToLowerInvariant()
-if ($exportApiKey -notin @('true', 'false')) {
-  throw "export-api-key must be true or false"
+$exportAuthToken = ([string]$env:INPUT_EXPORT_AUTH_TOKEN).ToLowerInvariant()
+if ($exportAuthToken -notin @('true', 'false')) {
+  throw "export-auth-token must be true or false"
 }
 
 $oidcAuthOnly = ([string]$env:INPUT_OIDC_AUTH_ONLY).ToLowerInvariant()
@@ -59,8 +59,8 @@ if ($oidcAuthOnly -notin @('true', 'false')) {
   throw "oidc-auth-only must be true or false"
 }
 if ($oidcAuthOnly -eq 'true') {
-  Write-Host "::warning::The 'oidc-auth-only' input is a deprecated alias for 'export-api-key'. Version 3 always installs the CLI before exporting the token."
-  $exportApiKey = 'true'
+  Write-Host "::warning::The 'oidc-auth-only' input is deprecated and aliases 'export-auth-token', which provides the same result through the CLI instead of raw API calls."
+  $exportAuthToken = 'true'
 }
 
 $cliVersion = $env:INPUT_CLI_VERSION
@@ -161,12 +161,12 @@ switch ($apiSslVerify) {
 }
 
 $exportedToken = ''
-if ($exportApiKey -eq 'true') {
+if ($exportAuthToken -eq 'true') {
   # 'tokens show' prints only the resolved token on stdout, performing the
   # OIDC token exchange when that is the resolving credential source.
   $exportedToken = (& $executable tokens show | Out-String).Trim()
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrEmpty($exportedToken)) {
-    throw "Failed to read the API token. 'export-api-key' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
+    throw "Failed to read the authentication token. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   }
   Write-Host "::add-mask::$exportedToken"
   Write-JobEnvironment -Name CLOUDSMITH_API_KEY -Value $exportedToken
