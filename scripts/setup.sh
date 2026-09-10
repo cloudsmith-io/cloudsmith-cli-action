@@ -156,7 +156,13 @@ if [[ "$export_auth_token" == "true" ]]; then
 
   # Resolve once: the helper performs the OIDC exchange when OIDC is the
   # effective source and emits a versioned JSON credential document.
-  if ! credential_document="$("$executable" credential-helper generic)"; then
+  if ! credential_document="$(
+    # Ignore tokens exported by earlier invocations, but keep explicit API keys.
+    if [[ "$has_oidc_namespace" == "yes" && -z "$INPUT_API_KEY" ]]; then
+      unset CLOUDSMITH_API_KEY
+    fi
+    "$executable" credential-helper generic
+  )"; then
     fail "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   fi
 

@@ -25,6 +25,7 @@ jobs:
       - name: Syntax check
         run: |
           bash -n scripts/setup.sh
+          bash -n scripts/test-setup.sh
           sh -n installer/install.sh
 
       - name: Install ShellCheck
@@ -33,6 +34,7 @@ jobs:
       - name: ShellCheck
         run: |
           shellcheck --severity=style scripts/setup.sh
+          shellcheck --severity=style scripts/test-setup.sh
           shellcheck --shell=sh --severity=style installer/install.sh
 
   lint-powershell:
@@ -53,13 +55,14 @@ jobs:
         shell: pwsh
         run: |
           Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings PSGallery -EnableExit
+          Invoke-ScriptAnalyzer -Path scripts/test-setup.ps1 -Settings PSGallery -EnableExit
           Invoke-ScriptAnalyzer -Path installer/install.ps1 -Settings PSGallery -EnableExit
 
       - name: AST parse check
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          foreach ($file in @("scripts/setup.ps1", "installer/install.ps1")) {
+          foreach ($file in @("scripts/setup.ps1", "scripts/test-setup.ps1", "installer/install.ps1")) {
             $tokens = $null
             $errors = $null
             [void][System.Management.Automation.Language.Parser]::ParseFile($file, [ref]$tokens, [ref]$errors)
@@ -71,6 +74,30 @@ jobs:
             }
             Write-Output "OK: $file"
           }
+
+  test-setup:
+    name: Setup regression tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Test Bash setup
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash scripts/test-setup.sh
+
+      - name: Test PowerShell setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/test-setup.ps1
 
   installer-drift:
     name: Vendored installer drift check
