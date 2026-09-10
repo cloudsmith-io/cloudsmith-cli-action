@@ -141,7 +141,7 @@ jobs:
       # values are enough to test the install path without secrets.
       - name: Install Cloudsmith CLI
         id: setup
-        uses: ./
+        uses: $/
         with:
           oidc-namespace: placeholder-namespace
           oidc-service-slug: placeholder-service
@@ -186,7 +186,7 @@ jobs:
 
       - name: Install Cloudsmith CLI
         id: setup
-        uses: ./
+        uses: $/
         with:
           # Latest version published to the pre-release test repository.
           # Bump to the first production release when the vendored installer
@@ -225,19 +225,19 @@ jobs:
       - name: No authentication inputs should fail
         id: no-auth
         continue-on-error: true
-        uses: ./
+        uses: $/
 
       - name: Incomplete OIDC pair should fail
         id: partial-oidc
         continue-on-error: true
-        uses: ./
+        uses: $/
         with:
           oidc-namespace: placeholder-namespace
 
       - name: verify-auth with a bad API key should fail
         id: bad-key
         continue-on-error: true
-        uses: ./
+        uses: $/
         with:
           api-key: placeholder-invalid-key
           verify-auth: "true"
@@ -299,7 +299,7 @@ jobs:
 
       - name: Install and authenticate
         id: setup
-        uses: ./
+        uses: $/
         with:
           api-key: ${{ secrets.CLOUDSMITH_API_KEY }}
           export-auth-token: ${{ matrix.export-auth-token }}
@@ -351,7 +351,7 @@ jobs:
 
       - name: Install and authenticate
         id: setup
-        uses: ./
+        uses: $/
         with:
           oidc-namespace: ${{ vars.CLOUDSMITH_NAMESPACE }}
           oidc-service-slug: ${{ vars.CLOUDSMITH_SERVICE_SLUG }}
