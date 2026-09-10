@@ -165,8 +165,18 @@ $credentialUsername = ''
 if ($exportAuthToken -eq 'true') {
   # Resolve once: the helper performs the OIDC exchange when OIDC is the
   # effective source and emits a versioned JSON credential document.
-  $credentialJsonLines = & $executable credential-helper generic
-  $credentialStatus = $LASTEXITCODE
+  $previousApiKey = $env:CLOUDSMITH_API_KEY
+  try {
+    # Ignore tokens exported by earlier invocations, but keep explicit API keys.
+    if ($hasOidcNamespace -and -not $hasApiKey) {
+      $env:CLOUDSMITH_API_KEY = $null
+    }
+    $credentialJsonLines = & $executable credential-helper generic
+    $credentialStatus = $LASTEXITCODE
+  }
+  finally {
+    $env:CLOUDSMITH_API_KEY = $previousApiKey
+  }
   if ($credentialStatus -ne 0) {
     throw "Failed to resolve credentials. 'export-auth-token' requires Cloudsmith CLI 1.21.0 or later and valid credentials."
   }

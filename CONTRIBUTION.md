@@ -21,6 +21,8 @@ Thank you for considering contributing to the Cloudsmith CLI Setup action!
    bash -n scripts/setup.sh
    shellcheck --severity=style scripts/setup.sh
    pwsh -Command "Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings PSGallery -EnableExit"
+   bash scripts/test-setup.sh
+   pwsh -NoProfile -File scripts/test-setup.ps1
    ```
 
 4. Commit, push to your fork, and open a pull request.
