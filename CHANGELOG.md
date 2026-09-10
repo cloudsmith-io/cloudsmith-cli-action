@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ---
 
+## [3.1.1] - 2026-09-10
+---
+### Fixed
+
+- `export-auth-token` with OIDC: a second invocation of the action no longer reuses the token that an earlier invocation exported. The credential helper inherited `CLOUDSMITH_API_KEY` from the environment and returned it unchanged, so setup for a second organization kept the first organization's credential. The wrapper scripts now clear the inherited `CLOUDSMITH_API_KEY` before they call the helper. An explicit `api-key` input is still honoured.
+
 ## [3.1.0] - 2026-08-03
 ---
 ### Added
