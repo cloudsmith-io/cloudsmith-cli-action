@@ -22,10 +22,28 @@ Thank you for considering contributing to the Cloudsmith CLI Setup action!
    shellcheck --severity=style scripts/setup.sh
    pwsh -Command "Invoke-ScriptAnalyzer -Path scripts/setup.ps1 -Settings PSGallery -EnableExit"
    bash scripts/test-setup.sh
+   bash scripts/test-bump-cli-version.sh
    pwsh -NoProfile -File scripts/test-setup.ps1
    ```
 
 4. Commit, push to your fork, and open a pull request.
+
+## Releasing
+
+The `Release` workflow runs when `CHANGELOG.md` changes on `master`. If the
+newest version in `CHANGELOG.md` has no tag, the workflow runs the test
+matrix. When the tests pass, it creates the tag and the GitHub release. It
+also moves the floating major tag, for example `v3`, to the new release.
+
+To release action changes, add a version section to `CHANGELOG.md` in a pull
+request. Use a minor or major version as Semantic Versioning requires.
+
+Each Cloudsmith CLI release opens a pull request from `cloudsmith-bot`. The
+release workflow of the CLI runs `scripts/bump-cli-version.sh` to make the
+change. The script pins the default `cli-version` in `action.yml` to the new
+CLI version. It also adds a patch version section to `CHANGELOG.md`. If
+`[Unreleased]` has entries, the script adds a minor version section that
+includes them. Merge the pull request to release it.
 
 ## Variables and Secrets for GitHub Actions
 

@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ---
 
+## [3.2.0] - 2026-10-01
+---
+### Changed
+
+- `cli-version` now defaults to a pinned Cloudsmith CLI version (1.27.0) instead of `latest`. A workflow that pins this action to a commit SHA now installs the same CLI version on every run. Set `cli-version: latest` to keep the previous floating behavior.
+- Each Cloudsmith CLI release now opens a pull request that pins the new CLI version. When the pull request merges, the action publishes a patch release, or a minor release if unreleased changes are pending, and moves the `v3` tag.
+
 ## [3.1.1] - 2026-09-10
 ---
 ### Fixed

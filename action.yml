@@ -8,9 +8,9 @@ branding:
 
 inputs:
   cli-version:
-    description: "Cloudsmith CLI version to install, for example '1.20.0', or 'latest'."
+    description: "Cloudsmith CLI version to install, for example '1.20.0', or 'latest'. Defaults to the CLI version that this action release pins."
     required: false
-    default: "latest"
+    default: "1.27.0"
   install-directory:
     description: "Root directory for versioned CLI installations. Defaults to RUNNER_TEMP/cloudsmith-cli."
     required: false
