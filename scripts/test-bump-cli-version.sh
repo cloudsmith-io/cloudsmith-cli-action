@@ -77,6 +77,11 @@ test -z "$(bash "$bump_script" 1.29.0)"
 diff -u expected-action.yml action.yml
 diff -u expected-CHANGELOG.md CHANGELOG.md
 
+# A version older than the pinned version changes nothing.
+test -z "$(bash "$bump_script" 1.28.5)"
+diff -u expected-action.yml action.yml
+diff -u expected-CHANGELOG.md CHANGELOG.md
+
 # A version that is not MAJOR.MINOR.PATCH is rejected.
 if bash "$bump_script" latest 2> /dev/null; then
   echo "expected 'latest' to be rejected" >&2

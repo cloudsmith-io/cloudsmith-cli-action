@@ -3,7 +3,8 @@
 # and records the change as a release of the action in CHANGELOG.md. The
 # release is a patch release, or a minor release that also includes the
 # entries under [Unreleased] when there are any.
-# Prints the new action version, or nothing when the version is already pinned.
+# Prints the new action version. Prints nothing when action.yml already pins
+# that version or a newer one.
 # Usage: scripts/bump-cli-version.sh CLI_VERSION
 set -euo pipefail
 
@@ -16,8 +17,9 @@ pinned_version="$(awk '
   in_cli_version && /^    default:/ { gsub(/"/, "", $2); print $2; exit }
 ' action.yml)"
 [[ -n "$pinned_version" ]] || { echo "no cli-version default in action.yml" >&2; exit 1; }
-if [[ "$pinned_version" == "$cli_version" ]]; then
-  echo "action.yml already pins Cloudsmith CLI $cli_version" >&2
+newest_version="$(printf '%s\n' "$pinned_version" "$cli_version" | sort -V | tail -n 1)"
+if [[ "$pinned_version" == "$newest_version" ]]; then
+  echo "action.yml already pins Cloudsmith CLI $pinned_version" >&2
   exit 0
 fi
 
