@@ -3,6 +3,10 @@ name: Test
 on:
   push:
   workflow_dispatch: {}
+  workflow_call:
+    secrets:
+      CLOUDSMITH_API_KEY:
+        required: false
 
 permissions:
   contents: read
@@ -26,6 +30,8 @@ jobs:
         run: |
           bash -n scripts/setup.sh
           bash -n scripts/test-setup.sh
+          bash -n scripts/bump-cli-version.sh
+          bash -n scripts/test-bump-cli-version.sh
           sh -n installer/install.sh
 
       - name: Install ShellCheck
@@ -35,6 +41,8 @@ jobs:
         run: |
           shellcheck --severity=style scripts/setup.sh
           shellcheck --severity=style scripts/test-setup.sh
+          shellcheck --severity=style scripts/bump-cli-version.sh
+          shellcheck --severity=style scripts/test-bump-cli-version.sh
           shellcheck --shell=sh --severity=style installer/install.sh
 
   lint-powershell:
@@ -93,6 +101,11 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: bash scripts/test-setup.sh
+
+      - name: Test CLI version bump
+        if: runner.os != 'Windows'
+        shell: bash
+        run: bash scripts/test-bump-cli-version.sh
 
       - name: Test PowerShell setup
         if: runner.os == 'Windows'
@@ -163,6 +176,18 @@ jobs:
           test -n "$OUTPUT_BIN_DIRECTORY"
           cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: $OUTPUT_CLI_VERSION"
 
+      - name: Check the pinned CLI version
+        shell: bash
+        env:
+          OUTPUT_CLI_VERSION: ${{ steps.setup.outputs.cli-version }}
+        run: |
+          set -euo pipefail
+          pinned_version="$(tr -d '\r' < action.yml | awk '
+            /^  cli-version:/ { in_cli_version = 1 }
+            in_cli_version && /^    default:/ { gsub(/"/, "", $2); print $2; exit }
+          ')"
+          test "$OUTPUT_CLI_VERSION" = "$pinned_version"
+
       - name: Check exported environment
         shell: bash
         run: |
@@ -211,6 +236,32 @@ jobs:
           esac
           test "$CLOUDSMITH_OIDC_AUDIENCE" = "test-audience"
           cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: 1.20.1"
+
+  test-latest-version:
+    name: Install latest version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Install Cloudsmith CLI
+        id: setup
+        uses: $/
+        with:
+          cli-version: latest
+          api-key: placeholder-key
+
+      - name: Check installation
+        shell: bash
+        env:
+          OUTPUT_CLI_VERSION: ${{ steps.setup.outputs.cli-version }}
+        run: |
+          set -euo pipefail
+          test -n "$OUTPUT_CLI_VERSION"
+          cloudsmith --version | tr -d '\r' | grep -Fx "CLI Package Version: $OUTPUT_CLI_VERSION"
 
   test-input-validation:
     name: Input validation

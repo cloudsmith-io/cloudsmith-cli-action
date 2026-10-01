@@ -17,7 +17,7 @@ Install the standalone [Cloudsmith CLI](https://github.com/cloudsmith-io/cloudsm
 | Runners | Linux, macOS, and Windows |
 | Architectures | x86-64, plus Linux and macOS ARM64 |
 | Runtime dependencies | No Python or Node.js; `export-auth-token` additionally uses `jq` on Linux and macOS |
-| Version selection | Latest release or a specific CLI version |
+| Version selection | A CLI version pinned by each action release, a specific CLI version, or the latest release |
 
 ## Quick start
 
@@ -96,7 +96,7 @@ An authentication method is required: provide `api-key`, or provide both `oidc-n
 
 | Input | Description | Required | Default |
 | --- | --- | --- | --- |
-| `cli-version` | CLI version to install, such as `1.20.0` | No | `latest` |
+| `cli-version` | CLI version to install, such as `1.20.0`, or `latest` | No | The CLI version that the action release pins |
 | `install-directory` | Root directory for versioned CLI installations | No | `RUNNER_TEMP/cloudsmith-cli` |
 | `verify-auth` | Run `cloudsmith whoami` after setup | No | `false` |
 
