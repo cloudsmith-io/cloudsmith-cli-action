@@ -38,12 +38,18 @@ also moves the floating major tag, for example `v3`, to the new release.
 To release action changes, add a version section to `CHANGELOG.md` in a pull
 request. Use a minor or major version as Semantic Versioning requires.
 
-Each Cloudsmith CLI release opens a pull request from `cloudsmith-bot`. The
-release workflow of the CLI runs `scripts/bump-cli-version.sh` to make the
-change. The script pins the default `cli-version` in `action.yml` to the new
+Each Cloudsmith CLI release sends a `cloudsmith-cli-release` event to this
+repository. The `Bump Cloudsmith CLI` workflow then runs
+`scripts/bump-cli-version.sh` and opens a pull request from `cloudsmith-bot`.
+The script pins the default `cli-version` in `action.yml` to the new
 CLI version. It also adds a patch version section to `CHANGELOG.md`. If
 `[Unreleased]` has entries, the script adds a minor version section that
 includes them. Merge the pull request to release it.
+
+To pin a CLI version by hand, run the `Bump Cloudsmith CLI` workflow with that
+version. To see the change locally, run `bash scripts/bump-cli-version.sh
+1.29.1`. The workflow needs the `DOWNSTREAM_RELEASE_PUSH_TOKEN` and
+`CLOUDSMITH_BOT_SSH_KEY` secrets of `cloudsmith-bot`.
 
 ## Variables and Secrets for GitHub Actions
 
