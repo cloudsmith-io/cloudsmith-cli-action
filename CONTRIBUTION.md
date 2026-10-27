@@ -44,7 +44,8 @@ repository. The `Bump Cloudsmith CLI` workflow then runs
 The script pins the default `cli-version` in `action.yml` to the new
 CLI version. It also adds a patch version section to `CHANGELOG.md`. If
 `[Unreleased]` has entries, the script adds a minor version section that
-includes them. Merge the pull request to release it.
+includes them. The workflow squash-merges the pull request when the checks
+pass, and the merge releases the action.
 
 To pin a CLI version by hand, run the `Bump Cloudsmith CLI` workflow with that
 version. To see the change locally, run `bash scripts/bump-cli-version.sh

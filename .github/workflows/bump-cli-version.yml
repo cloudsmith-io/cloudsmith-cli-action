@@ -33,5 +33,6 @@ jobs:
         with:
           version: ${{ github.event.client_payload.version || inputs.version }}
           bump-command: bash scripts/bump-cli-version.sh "$VERSION"
+          merge: "true"
           token: ${{ secrets.DOWNSTREAM_RELEASE_PUSH_TOKEN }}
           ssh-signing-key: ${{ secrets.CLOUDSMITH_BOT_SSH_KEY }}
