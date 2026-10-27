@@ -1,0 +1,37 @@
+name: Bump Cloudsmith CLI
+
+# Opens a pull request that pins the default cli-version to a Cloudsmith CLI
+# release. The CLI release workflow sends the cloudsmith-cli-release event.
+# Run the workflow by hand to pin a specific version.
+on:
+  repository_dispatch:
+    types:
+      - cloudsmith-cli-release
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The Cloudsmith CLI version to pin, for example 1.29.1.
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: bump-cli-version
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  bump:
+    name: Open the bump pull request
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Open the bump pull request
+        uses: cloudsmith-io/cloudsmith-cli/.github/actions/open-cli-bump-pr@34f5fd967daaab552a66dd9a890d550c47a39b0c # master
+        with:
+          version: ${{ github.event.client_payload.version || inputs.version }}
+          bump-command: bash scripts/bump-cli-version.sh "$VERSION"
+          token: ${{ secrets.DOWNSTREAM_RELEASE_PUSH_TOKEN }}
+          ssh-signing-key: ${{ secrets.CLOUDSMITH_BOT_SSH_KEY }}
