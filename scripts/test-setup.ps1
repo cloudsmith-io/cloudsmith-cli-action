@@ -87,8 +87,18 @@ switch ($args -join ' ') {
   Assert-Equal @(Get-Content "$testRoot/helper.log").Count 2
 
   # Explicit API keys still win, even with OIDC inputs and an inherited token.
+  # They must not require GitHub's OIDC permission when it is not in use.
   $env:INPUT_API_KEY = 'explicit-key'
+  Remove-Item Env:ACTIONS_ID_TOKEN_REQUEST_URL -ErrorAction SilentlyContinue
   Invoke-SetupTest 'explicit-key'
+
+  # OIDC-only authentication must continue to reject a missing ID token.
+  $env:INPUT_API_KEY = ''
+  $missingTokenOutput = & (Join-Path $PSHOME 'pwsh') -NoProfile -File $setupScript 2>&1 | Out-String
+  Assert-Equal ($LASTEXITCODE -ne 0) $true
+  Assert-Equal ($missingTokenOutput.Contains('OIDC authentication requires an ID token')) $true
+  $env:ACTIONS_ID_TOKEN_REQUEST_URL = 'https://example.invalid/oidc'
+  $env:INPUT_API_KEY = 'explicit-key'
   $env:INPUT_OIDC_NAMESPACE = ''
   $env:INPUT_OIDC_SERVICE_SLUG = ''
   $env:INPUT_API_KEY = 'api-only-key'

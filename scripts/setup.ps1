@@ -35,7 +35,9 @@ if (-not [string]::IsNullOrEmpty($env:INPUT_OIDC_AUDIENCE) -and -not $hasOidcNam
   throw "oidc-audience requires oidc-namespace and oidc-service-slug"
 }
 
-if ($hasOidcNamespace -and [string]::IsNullOrEmpty($env:ACTIONS_ID_TOKEN_REQUEST_URL)) {
+# A supplied API key takes precedence over OIDC, so it must not require
+# the workflow to grant an otherwise unused id-token permission.
+if ($hasOidcNamespace -and -not $hasApiKey -and [string]::IsNullOrEmpty($env:ACTIONS_ID_TOKEN_REQUEST_URL)) {
   throw "OIDC authentication requires an ID token. Add 'permissions: id-token: write' to your workflow or job."
 }
 
