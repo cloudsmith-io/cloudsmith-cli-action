@@ -67,8 +67,20 @@ test "$(cat "$test_root/exchanges.log")" = $'pull-only\npush-capable'
 test "$(wc -l < "$test_root/helper.log" | tr -d ' ')" = 2
 
 # Explicit API keys still win, even with OIDC inputs and an inherited token.
+# They must not require GitHub's OIDC permission when it is not in use.
 export INPUT_API_KEY=explicit-key
+unset ACTIONS_ID_TOKEN_REQUEST_URL
 run_setup explicit-key
+
+# OIDC-only authentication must continue to reject a missing ID token.
+export INPUT_API_KEY=""
+if bash "$setup_script" > "$test_root/missing-id-token.log" 2>&1; then
+  echo "OIDC-only authentication unexpectedly succeeded without an ID token" >&2
+  exit 1
+fi
+grep -F 'OIDC authentication requires an ID token' "$test_root/missing-id-token.log"
+export ACTIONS_ID_TOKEN_REQUEST_URL=https://example.invalid/oidc
+export INPUT_API_KEY=explicit-key
 export INPUT_OIDC_NAMESPACE="" INPUT_OIDC_SERVICE_SLUG="" INPUT_API_KEY=api-only-key
 run_setup api-only-key
 test "$(cat "$test_root/exchanges.log")" = $'pull-only\npush-capable'

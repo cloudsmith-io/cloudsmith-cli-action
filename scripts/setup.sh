@@ -45,7 +45,9 @@ if [[ -n "$INPUT_OIDC_AUDIENCE" && "$has_oidc_namespace" == "no" ]]; then
   fail "oidc-audience requires oidc-namespace and oidc-service-slug"
 fi
 
-if [[ "$has_oidc_namespace" == "yes" && -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]]; then
+# A supplied API key takes precedence over OIDC, so it must not require
+# the workflow to grant an otherwise unused id-token permission.
+if [[ "$has_oidc_namespace" == "yes" && -z "$INPUT_API_KEY" && -z "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]]; then
   fail "OIDC authentication requires an ID token. Add 'permissions: id-token: write' to your workflow or job."
 fi
 
