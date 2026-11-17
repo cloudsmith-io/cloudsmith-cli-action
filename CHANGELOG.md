@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ---
 
+## [3.2.4] - 2026-11-17
+---
+### Changed
+
+- Pin the default `cli-version` to Cloudsmith CLI 1.31.3.
+
 ## [3.2.3] - 2026-11-12
 ---
 ### Changed
