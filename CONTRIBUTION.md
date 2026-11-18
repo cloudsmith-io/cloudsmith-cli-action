@@ -49,8 +49,8 @@ pass, and the merge releases the action.
 
 To pin a CLI version by hand, run the `Bump Cloudsmith CLI` workflow with that
 version. To see the change locally, run `bash scripts/bump-cli-version.sh
-1.29.1`. The workflow needs the `DOWNSTREAM_RELEASE_PUSH_TOKEN` and
-`CLOUDSMITH_BOT_SSH_KEY` secrets of `cloudsmith-bot`.
+1.29.1`. The workflow needs the `CLOUDSMITH_BOT_TOKEN` and
+`CLOUDSMITH_BOT_SSH_SIGNING_KEY` secrets of `cloudsmith-bot`.
 
 ## Variables and Secrets for GitHub Actions
 
