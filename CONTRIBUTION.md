@@ -42,7 +42,8 @@ Each Cloudsmith CLI release sends a `cloudsmith-cli-release` event to this
 repository. The `Bump Cloudsmith CLI` workflow then runs
 `scripts/bump-cli-version.sh` and opens a pull request from `cloudsmith-bot`.
 The script pins the default `cli-version` in `action.yml` to the new
-CLI version. It also adds a patch version section to `CHANGELOG.md`. If
+CLI version. The script ignores a CLI version with a different major version.
+It also adds a patch version section to `CHANGELOG.md`. If
 `[Unreleased]` has entries, the script adds a minor version section that
 includes them. The workflow squash-merges the pull request when the checks
 pass, and the merge releases the action.

@@ -4,7 +4,7 @@
 # release is a patch release, or a minor release that also includes the
 # entries under [Unreleased] when there are any.
 # Prints the new action version. Prints nothing when action.yml already pins
-# that version or a newer one.
+# that version or a newer one, or when the major version differs.
 # Usage: scripts/bump-cli-version.sh CLI_VERSION
 set -euo pipefail
 
@@ -20,6 +20,10 @@ pinned_version="$(awk '
 newest_version="$(printf '%s\n' "$pinned_version" "$cli_version" | sort -V | tail -n 1)"
 if [[ "$pinned_version" == "$newest_version" ]]; then
   echo "action.yml already pins Cloudsmith CLI $pinned_version" >&2
+  exit 0
+fi
+if [[ "${cli_version%%.*}" != "${pinned_version%%.*}" ]]; then
+  echo "Cloudsmith CLI $cli_version has a different major version from $pinned_version" >&2
   exit 0
 fi
 

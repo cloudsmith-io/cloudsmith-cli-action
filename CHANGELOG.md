@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ---
+### Fixed
+
+- A Cloudsmith CLI release with a new major version no longer changes the default `cli-version`. The `v3` tag keeps Cloudsmith CLI 1.x.
 
 ## [3.2.4] - 2026-11-17
 ---
