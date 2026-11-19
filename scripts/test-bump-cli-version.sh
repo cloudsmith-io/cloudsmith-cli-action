@@ -82,16 +82,18 @@ test -z "$(bash "$bump_script" 1.28.5)"
 diff -u expected-action.yml action.yml
 diff -u expected-CHANGELOG.md CHANGELOG.md
 
-# A new major version changes nothing.
-test -z "$(bash "$bump_script" 2.0.0)"
-diff -u expected-action.yml action.yml
-diff -u expected-CHANGELOG.md CHANGELOG.md
-
 # A version that is not MAJOR.MINOR.PATCH is rejected.
 if bash "$bump_script" latest 2> /dev/null; then
   echo "expected 'latest' to be rejected" >&2
   exit 1
 fi
 diff -u expected-action.yml action.yml
+
+# A new major version of the CLI is a major release of the action.
+test "$(bash "$bump_script" 2.0.0)" = "4.0.0"
+sed -i.bak 's/default: "1.29.0"/default: "2.0.0"/' expected-action.yml
+diff -u expected-action.yml action.yml
+grep -Fx "## [4.0.0] - $today" CHANGELOG.md
+grep -Fx -- "- Pin the default \`cli-version\` to Cloudsmith CLI 2.0.0." CHANGELOG.md
 
 echo "bump-cli-version tests passed"

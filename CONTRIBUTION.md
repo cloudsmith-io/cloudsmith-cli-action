@@ -42,10 +42,10 @@ Each Cloudsmith CLI release sends a `cloudsmith-cli-release` event to this
 repository. The `Bump Cloudsmith CLI` workflow then runs
 `scripts/bump-cli-version.sh` and opens a pull request from `cloudsmith-bot`.
 The script pins the default `cli-version` in `action.yml` to the new
-CLI version. The script ignores a CLI version with a different major version.
-It also adds a patch version section to `CHANGELOG.md`. If
+CLI version. It also adds a patch version section to `CHANGELOG.md`. If
 `[Unreleased]` has entries, the script adds a minor version section that
-includes them. The workflow squash-merges the pull request when the checks
+includes them. A new CLI major version gets a major version section, for
+example CLI 2.0.0 gets action 4.0.0. The workflow squash-merges the pull request when the checks
 pass, and the merge releases the action.
 
 To pin a CLI version by hand, run the `Bump Cloudsmith CLI` workflow with that

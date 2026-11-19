@@ -2,9 +2,10 @@
 # Pins the default cli-version in action.yml to a new Cloudsmith CLI release
 # and records the change as a release of the action in CHANGELOG.md. The
 # release is a patch release, or a minor release that also includes the
-# entries under [Unreleased] when there are any.
+# entries under [Unreleased] when there are any. A new CLI major version is a
+# major release of the action, for example CLI 2.0.0 releases action 4.0.0.
 # Prints the new action version. Prints nothing when action.yml already pins
-# that version or a newer one, or when the major version differs.
+# that version or a newer one.
 # Usage: scripts/bump-cli-version.sh CLI_VERSION
 set -euo pipefail
 
@@ -22,10 +23,6 @@ if [[ "$pinned_version" == "$newest_version" ]]; then
   echo "action.yml already pins Cloudsmith CLI $pinned_version" >&2
   exit 0
 fi
-if [[ "${cli_version%%.*}" != "${pinned_version%%.*}" ]]; then
-  echo "Cloudsmith CLI $cli_version has a different major version from $pinned_version" >&2
-  exit 0
-fi
 
 released_version="$(sed -n 's/^## \[\([0-9]*\.[0-9]*\.[0-9]*\)\].*/\1/p' CHANGELOG.md | head -n 1)"
 [[ -n "$released_version" ]] || { echo "no released version in CHANGELOG.md" >&2; exit 1; }
@@ -34,7 +31,9 @@ unreleased_changes="$(awk '
   in_unreleased && $0 != "" && $0 != "---"
 ' CHANGELOG.md)"
 IFS=. read -r major minor patch <<< "$released_version"
-if [[ -n "$unreleased_changes" ]]; then
+if [[ "${cli_version%%.*}" != "${pinned_version%%.*}" ]]; then
+  action_version="$(( major + 1 )).0.0"
+elif [[ -n "$unreleased_changes" ]]; then
   action_version="$major.$(( minor + 1 )).0"
 else
   action_version="$major.$minor.$(( patch + 1 ))"
