@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ---
+
+## [3.3.0] - 2026-11-24
+---
 ### Changed
 
 - Export the non-deprecated CLI environment variables: `oidc-namespace` now sets `CLOUDSMITH_WORKSPACE` (was `CLOUDSMITH_ORG`), `api-proxy` sets `CLOUDSMITH_PROXY` (was `CLOUDSMITH_API_PROXY`), and `api-ssl-verify` sets `CLOUDSMITH_SSL_VERIFY` (was `CLOUDSMITH_WITHOUT_API_SSL_VERIFY`). This removes the CLI's deprecation warnings. Older pinned CLI versions ignore variables they do not support: `CLOUDSMITH_WORKSPACE` needs CLI 1.27.0+, and `CLOUDSMITH_PROXY` and `CLOUDSMITH_SSL_VERIFY` need CLI 1.30.0+.
