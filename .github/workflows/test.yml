@@ -192,7 +192,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$CLOUDSMITH_ORG" = "placeholder-namespace"
+          test "$CLOUDSMITH_WORKSPACE" = "placeholder-namespace"
           test "$CLOUDSMITH_SERVICE_SLUG" = "placeholder-service"
           test "$CLOUDSMITH_OIDC_AUDIENCE" = "https://github.com/$GITHUB_REPOSITORY_OWNER"
 

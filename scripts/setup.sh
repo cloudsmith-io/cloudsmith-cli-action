@@ -131,7 +131,7 @@ if [[ "$has_oidc_namespace" == "yes" ]]; then
     audience="https://github.com/${GITHUB_REPOSITORY_OWNER}"
   fi
 
-  append_env CLOUDSMITH_ORG "$INPUT_OIDC_NAMESPACE"
+  append_env CLOUDSMITH_WORKSPACE "$INPUT_OIDC_NAMESPACE"
   append_env CLOUDSMITH_SERVICE_SLUG "$INPUT_OIDC_SERVICE_SLUG"
   append_env CLOUDSMITH_OIDC_AUDIENCE "$audience"
 fi
@@ -142,12 +142,12 @@ if [[ -n "$api_host" && "$api_host" != *"://"* ]]; then
   api_host="https://$api_host"
 fi
 [[ -z "$api_host" ]] || append_env CLOUDSMITH_API_HOST "$api_host"
-[[ -z "$INPUT_API_PROXY" ]] || append_env CLOUDSMITH_API_PROXY "$INPUT_API_PROXY"
+[[ -z "$INPUT_API_PROXY" ]] || append_env CLOUDSMITH_PROXY "$INPUT_API_PROXY"
 [[ -z "$INPUT_API_USER_AGENT" ]] || append_env CLOUDSMITH_API_USER_AGENT "$INPUT_API_USER_AGENT"
 
 case "$api_ssl_verify" in
-  true) append_env CLOUDSMITH_WITHOUT_API_SSL_VERIFY "false" ;;
-  false) append_env CLOUDSMITH_WITHOUT_API_SSL_VERIFY "true" ;;
+  true) append_env CLOUDSMITH_SSL_VERIFY "true" ;;
+  false) append_env CLOUDSMITH_SSL_VERIFY "false" ;;
 esac
 
 exported_token=""

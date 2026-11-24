@@ -150,13 +150,13 @@ The action configures later steps by exporting the environment variables that co
 | Input | Environment variable |
 | --- | --- |
 | `api-key` | `CLOUDSMITH_API_KEY` |
-| `oidc-namespace` | `CLOUDSMITH_ORG` |
+| `oidc-namespace` | `CLOUDSMITH_WORKSPACE` |
 | `oidc-service-slug` | `CLOUDSMITH_SERVICE_SLUG` |
 | `oidc-audience` | `CLOUDSMITH_OIDC_AUDIENCE` |
 | `api-host` | `CLOUDSMITH_API_HOST` |
-| `api-proxy` | `CLOUDSMITH_API_PROXY` |
+| `api-proxy` | `CLOUDSMITH_PROXY` |
 | `api-user-agent` | `CLOUDSMITH_API_USER_AGENT` |
-| `api-ssl-verify` | `CLOUDSMITH_WITHOUT_API_SSL_VERIFY` |
+| `api-ssl-verify` | `CLOUDSMITH_SSL_VERIFY` |
 | `export-auth-token` | `CLOUDSMITH_API_KEY` (effective credential) and `CLOUDSMITH_USERNAME` (`token`) |
 
 ## Publish a package
