@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ---
+### Fixed
+
+- A Cloudsmith CLI release with a new major version now releases a new major version of the action. For example, Cloudsmith CLI 2.0.0 releases `v4`, and the `v3` tag keeps Cloudsmith CLI 1.x.
 
 ## [3.3.1] - 2026-11-26
 ---
